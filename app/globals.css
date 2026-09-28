@@ -38,3 +38,5 @@ table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:8px;bord
 .src{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:0 6px}
 details>summary{cursor:pointer;font-weight:600;font-size:14px}
 @media (max-width:600px){.kv{grid-template-columns:1fr}}
+.social{justify-content:center;gap:10px;padding:10px 14px;font-weight:600;width:100%}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
