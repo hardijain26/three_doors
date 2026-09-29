@@ -11,15 +11,16 @@ type Career = { target: string; steps: Step[]; skills: Skill[]; gaps: string[]; 
 const blank = (): Career => ({ target: "", steps: [{ title: "", org: "", years: "", did: "" }, { title: "", org: "", years: "", did: "" }], skills: [], gaps: [], bridge: "" });
 
 export default function CareerPage() {
-  const sb = supabaseBrowser();
   const [c, setC] = useState<Career | null>(null); const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState<{ t: string; err?: boolean } | null>(null);
   const drag = useRef<{ from: number; over: number | null } | null>(null); const [over, setOver] = useState<number | null>(null);
-  useEffect(() => { sb.from("career").select("*").maybeSingle().then(({ data }: any) => setC(data ? { target: data.target ?? "", steps: data.steps?.length ? data.steps : blank().steps, skills: data.skills ?? [], gaps: data.gaps ?? [], bridge: data.bridge ?? "" } : blank())); }, []);
+  const getSb = () => supabaseBrowser();
+  useEffect(() => { const sb = getSb(); sb.from("career").select("*").maybeSingle().then(({ data }: any) => setC(data ? { target: data.target ?? "", steps: data.steps?.length ? data.steps : blank().steps, skills: data.skills ?? [], gaps: data.gaps ?? [], bridge: data.bridge ?? "" } : blank())); }, []);
   if (!c) return <p className="meta">Loading…</p>;
   const set = (patch: Partial<Career>) => { setC({ ...c, ...patch }); setDirty(true); setMsg(null); };
   const setStep = (i: number, patch: Partial<Step>) => set({ steps: c.steps.map((s, j) => (j === i ? { ...s, ...patch } : s)) });
   async function save(next = c!) {
+    const sb = getSb();
     const { data: u } = await sb.auth.getUser();
     const { error } = await sb.from("career").upsert({ user_id: u.user!.id, ...next, updated_at: new Date().toISOString() });
     if (error) setMsg({ t: "Saving failed. Try again.", err: true }); else { setDirty(false); setMsg({ t: "Saved." }); }
