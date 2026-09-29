@@ -55,11 +55,8 @@ function isDue(schedule: Schedule, lastStartedAt?: string | null, now = Date.now
 
 /**
  * Provider-neutral search orchestration.
- *
- * This layer owns scheduling/dispatch only. It does not know which LLM,
- * scraper, or agent implementation performs the actual search. The existing
- * /api/openings/search endpoint remains the search worker and already resolves
- * the user's configured AI provider through the AI gateway.
+ * Fixed: Now implements strict idempotency by creating a 'running' record 
+ * before dispatching to prevent duplicate triggers.
  */
 export async function dispatchDueSearches({
   admin,
@@ -79,6 +76,7 @@ export async function dispatchDueSearches({
     const schedule = (profile.search || {}).schedule as Schedule | undefined;
     if (!isDue(schedule || {})) continue;
 
+    // Check for any run that isn't 'failed' (including 'running' or 'completed')
     const { data: last } = await admin
       .from("search_runs")
       .select("started_at,status")
@@ -89,6 +87,15 @@ export async function dispatchDueSearches({
       .maybeSingle();
 
     if (!isDue(schedule || {}, last?.started_at)) continue;
+
+    // FIX: IDEMPOTENCY LOCK
+    // Create the run record IMMEDIATELY before fetching. 
+    // This prevents a second cron trigger from starting a duplicate search.
+    await admin.from("search_runs").insert({
+      user_id: profile.id,
+      started_at: new Date().toISOString(),
+      status: "running",
+    });
 
     const url = new URL("/api/openings/search", requestUrl);
     const response = await fetch(url, {
