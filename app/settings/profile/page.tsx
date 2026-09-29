@@ -67,7 +67,7 @@ function SearchSettings({ value, onSave }: { value: any; onSave: (v: any) => voi
   );
 }
 
-const SEARCH_FREQ: [string, string][] = [["off", "Off: only when I click Find jobs"], ["every6", "Every 6 hours"], ["every12", "Every 12 hours"], ["daily", "Once a day"], ["weekly", "Once a week"]];
+const SEARCH_FREQ: [string, string][] = [["off", "Off: only when I click Find jobs"], ["daily", "Once a day"], ["weekly", "Once a week"]];
 const SEARCH_DAYS: [string, string][] = [["1", "Monday"], ["2", "Tuesday"], ["3", "Wednesday"], ["4", "Thursday"], ["5", "Friday"], ["6", "Saturday"], ["0", "Sunday"]];
 type SearchSchedule = { freq: string; day: string; time: string };
 const scheduleDefaults = (s?: Partial<SearchSchedule>): SearchSchedule => ({ freq: s?.freq || "off", day: s?.day || "1", time: s?.time || "08:50" });
@@ -82,8 +82,7 @@ function AutomaticSearches({ value, onSave }: { value?: Partial<SearchSchedule>;
       <label className="f">How often<select value={s.freq} onChange={(e) => save({ freq: e.target.value })}>{SEARCH_FREQ.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select></label>
       {s.freq === "weekly" && <label className="f">Day<select value={s.day} onChange={(e) => save({ day: e.target.value })}>{SEARCH_DAYS.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select></label>}
       {(s.freq === "weekly" || s.freq === "daily") && <label className="f">Time (India)<input type="time" value={s.time} onChange={(e) => save({ time: e.target.value })} /></label>}
-      {(s.freq === "every6" || s.freq === "every12") && <p className="hint">The interval counts from the last completed search.</p>}
-      <p className="hint">Searches never run less than 6 hours apart. The same 20-opening daily limit applies to automatic searches.</p>
+      <p className="hint">Automatic searches follow your selected daily or weekly schedule. The same 20-opening daily limit applies to automatic searches.</p>
     </div>
   );
 }
@@ -117,7 +116,8 @@ function NearMe({ near, roles, onSave }: { near: { area?: string; km?: number };
 function Breaks({ value, onSave }: { value: any; onSave: (w: { session: number; brk: number; daily: number }) => void }) {
   const w = wbCfg(value), mins = useScreenMinutes();
   const sel = (k: "session" | "brk" | "daily", label: string) => (
-    <label className="f">{label}<select value={w[k]} onChange={(e) => onSave({ ...w, [k]: +e.target.value })}>{WB_OPTS[k].map(([n, l]) => <option key={n} value={n}>{l}</option>)}</select></label>);
+    <label className="f">{label}<select value={w[k]} onChange={(e) => onSave({ ...w, [k]: +e.target.value })}>{WB_OPTS[k].map(([n, l]) => <option key={n} value={n}>{l}</option>)}</select></label>
+  );
   return (
     <div className="card stack">
       <div className="row between"><h2 style={{ margin: 0 }}>Breaks</h2><span className="meta">Today so far: {mins ?? 0} min</span></div>
