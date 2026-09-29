@@ -24,7 +24,7 @@ export default function Privacy() {
       </div>
       <div className="card stack">
         <h2>Export and deletion</h2>
-        <p style={{ margin: 0 }}>Profile &amp; privacy lets you download the saved account data exposed by Three Doors and delete saved application data and stored AI credentials. Deletion signs you out and keeps the authentication account itself; anonymous telemetry is not linked to your email.</p>
+        <p style={{ margin: 0 }}>Profile &amp; privacy lets you download the saved account data currently available for export and delete saved application data and stored AI credentials. Deletion signs you out and keeps the authentication account itself; anonymous telemetry is not linked to your email.</p>
       </div>
     </div>
   );
