@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const IST_OFFSET_MS = 19_800_000;
 const DAY_MS = 86_400_000;
 
-type Schedule = { freq?: string; day?: string; time?: string };
+type Schedule = { freq?: "off" | "daily" | "weekly"; day?: string; time?: string };
 
 export type SearchDispatchResult = {
   user: string;
@@ -35,13 +35,11 @@ function isDue(schedule: Schedule, lastStartedAt?: string | null, now = Date.now
   const freq = schedule.freq || "off";
   if (freq === "off") return false;
 
-  const last = lastStartedAt ? Date.parse(lastStartedAt) : 0;
-  if (freq === "every6") return !last || now - last >= 6 * 60 * 60 * 1000;
-  if (freq === "every12") return !last || now - last >= 12 * 60 * 60 * 1000;
-
   const current = istNow(now);
   const time = schedule.time || "08:50";
   if (current.time < time) return false;
+
+  const last = lastStartedAt ? Date.parse(lastStartedAt) : 0;
 
   if (freq === "daily") {
     return !last || istNow(last).date !== current.date;
