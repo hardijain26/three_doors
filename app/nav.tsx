@@ -6,7 +6,7 @@ import { supabaseBrowser } from "@/lib/supabase/client.ts";
 import { signOutEverywhere } from "@/lib/client/ai.ts";
 import { Icon } from "@/components/icons.tsx";
 
-const TABS = [["/openings", "Openings", "search"], ["/roles", "Roles", "briefcase"], ["/people", "People", "users"], ["/career", "Career", "arrow"], ["/cv", "CV", "file"], ["/analytics", "Analytics", "chart"], ["/messages", "Messages", "message"], ["/settings/ai", "AI", "key"], ["/settings/profile", "Profile", "user"]] as const;
+const TABS = [["/career", "Career", "arrow"], ["/openings", "Openings", "search"], ["/roles", "Roles", "briefcase"], ["/people", "People", "users"], ["/cv", "CV", "file"], ["/analytics", "Analytics", "chart"], ["/messages", "Messages", "message"], ["/settings/ai", "AI", "key"], ["/settings/profile", "Profile", "user"]] as const;
 export default function Nav() {
   const path = usePathname(); const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
