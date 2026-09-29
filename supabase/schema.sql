@@ -169,7 +169,7 @@ create table public.cv_versions (
 create table public.sources (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  name text not null, url text not null check (url ~ '^https://[^\s]{4,500}$'),
+  name text not null, url text not null constraint sources_url_check check (url ~ '^https://\S+$' and length(url) between 12 and 508),
   enabled boolean not null default true, fav boolean not null default false,
   last_checked timestamptz, last_found int, last_error text, created_at timestamptz not null default now(), unique (user_id, url));
 create table public.openings (
