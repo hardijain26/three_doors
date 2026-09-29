@@ -5,22 +5,35 @@ import { ok, fail, unauthorized, browserKey } from "@/lib/http/respond.ts";
 import { htmlToText, safeFetchText } from "@/lib/security/safe-fetch.ts";
 import { log } from "@/lib/security/redact.ts";
 import { requireUser } from "@/lib/supabase/server.ts";
+import { supabaseAdmin } from "@/lib/supabase/admin.ts";
 import { NextResponse } from "next/server";
 
 export const maxDuration = 300;
-// Deadline leaves room for one in-flight source (fetch ~40s + AI 90s) inside maxDuration 300.
 const PER_RUN = 30, DAY_CAP = 20, GAP_H = 6, CONCURRENCY = 4, DEADLINE_MS = 150_000;
 const istToday = () => new Date(Date.now() + 19_800_000).toISOString().slice(0, 10);
 
-// Reads the user's job-board sources, asks the user's own AI to pull out matching
-// PM openings, and stores up to 20 new ones a day. Runs are at least 6 hours apart.
 export async function POST(req: Request) {
   const t0 = Date.now();
-  const { sb, user } = await requireUser();
-  if (!user) return unauthorized();
+  const cronSecret = process.env.CRON_SECRET;
+  const internalSecret = req.headers.get("x-three-doors-cron-secret");
+  const internalUserId = req.headers.get("x-three-doors-user-id");
+  const isCron = !!cronSecret && !!internalUserId && internalSecret === cronSecret;
+  let sb: any;
+  let user: any;
+  if (isCron) {
+    const admin = supabaseAdmin();
+    const { data, error } = await admin.auth.admin.getUserById(internalUserId!);
+    if (error || !data.user) return unauthorized();
+    sb = admin;
+    user = data.user;
+  } else {
+    const auth = await requireUser();
+    sb = auth.sb; user = auth.user;
+    if (!user) return unauthorized();
+  }
   try {
     const { data: last } = await sb.from("search_runs").select("started_at, status").eq("user_id", user.id).neq("status", "failed").order("started_at", { ascending: false }).limit(1).maybeSingle();
-    if (last && Date.now() - Date.parse(last.started_at) < GAP_H * 3_600_000) { // friendly message; the RPC below enforces it atomically
+    if (last && Date.now() - Date.parse(last.started_at) < GAP_H * 3_600_000) {
       const next = new Date(Date.parse(last.started_at) + GAP_H * 3_600_000).toISOString();
       return NextResponse.json({ error: "too_soon", message: "Searches need 6 hours between them.", next }, { status: 429 });
     }
@@ -41,7 +54,7 @@ export async function POST(req: Request) {
     const run = { id: runId as string };
 
     const criteria = { roles: [], countries: [], cities: [], skip: [], remote: {}, ...(prof?.search ?? {}) };
-    const skip = (criteria.skip as string[]).map((s) => new RegExp(`\\b${s.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"));
+    const skip = (criteria.skip as string[]).map((s) => new RegExp(`\\b${s.toLowerCase().replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\b`, "i"));
     const me = { first_name: prof?.first_name, last_role: prof?.last_role, last_company: prof?.last_company, owned: prof?.owned, results: prof?.results, background: prof?.background };
     let added = 0, checked = 0; let aiError = null as string | null;
     const queue = [...sources];
@@ -58,8 +71,7 @@ export async function POST(req: Request) {
             for (const o of openings) {
               if (skip.some((re) => re.test(`${o.company} ${o.why}`))) continue;
               if (added >= room) break;
-              added++; // reserve the slot before awaiting, so parallel workers can't overshoot the cap
-              // Only keep a link that actually appears on the page, so a hostile page can't plant arbitrary URLs.
+              added++;
               const real = o.link && text.includes(`[${o.link}]`) ? o.link : "";
               const link = real || `${s.url}#${encodeURIComponent(`${o.company}-${o.title}`.toLowerCase())}`;
               const { error } = await sb.from("openings").insert({ source_id: s.id, company: o.company, title: o.title, location: o.location, link, score: o.score, why: o.why, flag: o.flag || null, found_on: today });
