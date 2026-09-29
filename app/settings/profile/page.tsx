@@ -11,8 +11,9 @@ type SearchSettings = { roles: string[]; countries: string[]; cities: string[]; 
 type SearchSchedule = { freq: "off" | "daily" | "weekly"; day: string; time: string };
 type Wellbeing = { session: number; brk: number; daily: number };
 type ListKey = "roles" | "countries" | "cities" | "skip";
+type ProfileTextKey = "first_name" | "last_role" | "last_company" | "owned" | "results" | "background" | "based_in" | "portfolio" | "linkedin_url";
 
-const FIELDS: [keyof Profile, string, string][] = [
+const FIELDS: [ProfileTextKey, string, string][] = [
   ["first_name", "First name (how you sign messages)", "Hardi"], ["last_role", "Your last job title", "Product Manager"], ["last_company", "Last company", "PayU"],
   ["owned", "What you owned there", "web checkout, payment links and the SDK"], ["results", "Your best results, with their numbers", "Filtering bot traffic lifted checkout conversion 7%"], ["background", "Background before that (optional)", "Chartered Accountant"], ["based_in", "Where you live now", "Bengaluru, India"], ["portfolio", "Portfolio or website (optional)", "yourname.com"], ["linkedin_url", "Your LinkedIn profile URL", "https://www.linkedin.com/in/your-name"],
 ];
@@ -110,5 +111,5 @@ function NearMe({ near, roles, onSave }: { near: { area?: string; km?: number };
 
 function Breaks({ value, onSave }: { value: Wellbeing | undefined; onSave: (w: Wellbeing) => void }) {
   const w = wbCfg(value), mins = useScreenMinutes(); const sel = (k: keyof Wellbeing, label: string) => <label className="f">{label}<select value={w[k]} onChange={(e) => onSave({ ...w, [k]: +e.target.value })}>{WB_OPTS[k].map(([n, l]) => <option key={n} value={n}>{l}</option>)}</select></label>;
-  return <div className="card stack"><div className="row between"><h2 style={{ margin: 0 }}>Breaks</h2><span className="meta">Screen time today: {mins ?? 0} min</span></div><div className="grid">{sel("session", "Break after")}{sel("brk", "Break length")}{sel("daily", "Daily time limit")}</div><p className="hint">When you reach a limit, Three Doors pauses and shows a break screen. After the daily limit it stays paused for an hour. You can also mark up to 5 roles as applied per day. Screen time is counted only while this Three Doors tab is open and active, and the count stays in this browser.</p></div>;
+  return <div className="card stack"><div className="row between"><h2 style={{ margin: 0 }}>Breaks</h2><span className="meta">Screen time today: {mins ?? 0} min</span></div><div className="grid">{sel("session", "Break after")}{sel("brk", "Break length")}{sel("daily", "Daily time limit")}</div><p className="hint">When you reach a limit, Three Doors pauses and shows a break screen. After the daily limit it stays paused for an hour. You can also mark up to 5 roles as applied per day. Screen time is counted only while this Three Doors tab is open and active. The count stays in this browser.</p></div>;
 }
