@@ -20,7 +20,24 @@ const FIELDS: [keyof Profile, string, string][] = [
 export default function Profile() {
   const sb = supabaseBrowser(); const router = useRouter();
   const [p, setP] = useState<Profile | null>(null); const [saved, setSaved] = useState(""); const [saveError, setSaveError] = useState(""); const [del, setDel] = useState(false); const [deleteError, setDeleteError] = useState("");
-  useEffect(() => { sb.auth.getUser().then(async ({ data }) => { if (!data.user) return; const { data: row } = await sb.from("profiles").select("*").eq("id", data.user.id).single(); setP(row as Profile | null); }); }, []);
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: userData, error: userError } = await sb.auth.getUser();
+      if (userError || !userData.user) {
+        setSaveError("We couldn't load your profile. Please try again.");
+        return;
+      }
+
+      const { data: row, error: profileError } = await sb.from("profiles").select("*").eq("id", userData.user.id).single();
+      if (profileError) {
+        setSaveError("We couldn't load your profile. Please try again.");
+        return;
+      }
+      setP(row as Profile | null);
+    };
+
+    void loadProfile();
+  }, []);
   if (!p) return <p className="meta">Loading…</p>;
   const save = async (patch: Partial<Profile>) => {
     setSaveError("");
