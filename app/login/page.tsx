@@ -49,7 +49,10 @@ export default function Login() {
     setBusy("");
   }
 
-  const socials = SOCIAL.filter((s) => enabled[s.id]);
+  // Providers listed in NEXT_PUBLIC_AUTH_PROVIDERS always show (default: Google).
+  // Any other provider shows once Supabase reports it switched on.
+  const always = (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? "google").split(",").map((x) => x.trim());
+  const socials = SOCIAL.filter((s) => always.includes(s.id) || enabled[s.id]);
   return (
     <div className="auth">
       <aside className="auth-side">
