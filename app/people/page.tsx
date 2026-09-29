@@ -18,7 +18,7 @@ export default function People() {
   const saveNote = (id: string, notes: string) => sb.from("contacts").update({ notes, updated_at: new Date().toISOString() }).eq("id", id);
   return (
     <div className="stack">
-      <div><h1>People</h1><p className="meta" style={{ margin: 0 }}>Everyone you've added, across all roles.</p></div>
+      <div className="page-head"><div><h1>People</h1><p>Everyone you've added, across all roles.</p></div></div>
       <div className="row">
         <input style={{ flex: 1, minWidth: 200 }} placeholder="Search name, company, notes" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search people" />
         <select style={{ width: "auto" }} value={type} onChange={(e) => setType(e.target.value)} aria-label="Type"><option value="">Everyone</option><option value="hm">Hiring managers</option><option value="rec">Recruiters</option><option value="other">Other departments</option></select>

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { Icon } from "@/components/icons.tsx";
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client.ts";
 import { nextStep, reached, type Contact, type Role } from "@/lib/client/pipeline.ts";
@@ -21,7 +22,7 @@ export default function Roles() {
   if (!roles) return <p className="meta">Loading…</p>;
   return (
     <div className="stack">
-      <div className="row" style={{ justifyContent: "space-between" }}><div><h1>Roles</h1><p className="meta" style={{ margin: 0 }}>The jobs you're going after. Open one to add its people.</p></div><button className="primary" onClick={() => setAdding(!adding)}>{adding ? "Cancel" : "+ Add role"}</button></div>
+      <div className="page-head"><div><h1>Roles</h1><p>The jobs you're going after. Open one to add its people.</p></div><button className={adding ? "" : "primary"} onClick={() => setAdding(!adding)}>{adding ? "Cancel" : <><Icon name="plus" />Add role</>}</button></div>
       {adding && (
         <form onSubmit={add} className="card grid">
           <label className="f">Company<input required value={f.company} onChange={(e) => setF({ ...f, company: e.target.value })} /></label>
@@ -32,13 +33,13 @@ export default function Roles() {
           <div className="row" style={{ alignSelf: "end" }}><button className="primary">Save role</button></div>
         </form>
       )}
-      {!roles.length && !adding && <div className="card"><p style={{ margin: 0 }}>No roles yet. Add the first job you want to go after.</p></div>}
+      {!roles.length && !adding && <div className="card stack" style={{ alignItems: "flex-start" }}><span className="brand-mark" aria-hidden="true"><Icon name="briefcase" /></span><h2>No roles yet</h2><p className="meta">Add the first job you want to go after. Each role gets its own hiring manager, recruiter and referral contact.</p><button className="primary" onClick={() => setAdding(true)}><Icon name="plus" />Add your first role</button></div>}
       <div className="grid">
         {roles.map((r) => {
           const cs = contacts.filter((c) => c.role_id === r.id), sent = cs.filter((c) => reached(c) >= 1).length, due = cs.filter((c) => c.status !== "Closed" && nextStep(c)[1]).length;
           return (
-            <Link key={r.id} href={`/roles/${r.id}`} className="card stack" style={{ textDecoration: "none", color: "inherit" }}>
-              <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0 }}>{r.company}</h2>{r.fit && <span className={`chip${r.fit === "Stretch" ? " warn" : ""}`}>{r.fit}</span>}</div>
+            <Link key={r.id} href={`/roles/${r.id}`} className="card stack">
+              <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0 }}>{r.company}</h2>{r.fit && <span className={`chip${r.fit === "Strong" ? " ok" : r.fit === "Stretch" ? " warn" : ""}`}>{r.fit}</span>}</div>
               <div>{r.title}</div><div className="meta">{r.location}</div>
               <div className="meta">{cs.length ? `${sent} of ${cs.length} contacted` : "No people added yet"}{due ? <span className="due"> · {due} need action</span> : null}</div>
             </Link>

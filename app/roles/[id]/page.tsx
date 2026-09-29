@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { Icon } from "@/components/icons.tsx";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client.ts";
@@ -32,21 +33,21 @@ export default function RolePage() {
   }
   return (
     <div className="stack">
-      <Link href="/roles" className="meta">← All roles</Link>
+      <Link href="/roles" className="row meta" style={{ gap: 6, width: "fit-content" }}><Icon name="back" />All roles</Link>
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div><h1>{role.company} · {role.title}</h1><div className="meta">{role.location}{role.link && <> · <a href={role.link} target="_blank" rel="noopener noreferrer">Job post</a></>}</div></div>
-        {role.fit && <span className="chip">{role.fit}</span>}
+        {role.fit && <span className={`chip${role.fit === "Strong" ? " ok" : role.fit === "Stretch" ? " warn" : ""}`}>{role.fit}</span>}
       </div>
       <div className="grid">
         {cs.map((c) => <Person key={c.id} c={c} role={role} me={me} reload={load} />)}
         <div className="pbox add">
-          {!adding ? <><button className="primary" onClick={() => setAdding({ type: "", dept: "" })}>+ Add person</button><p className="hint">{missing.length ? `Still to find: ${missing.join(", ")}.` : "All three kinds of contact are covered."}</p></> : (
+          {!adding ? <><button className="primary block" onClick={() => setAdding({ type: "", dept: "" })}><Icon name="plus" />Add person</button><p className="hint">{missing.length ? `Still to find: ${missing.join(", ")}.` : "All three kinds of contact are covered."}</p></> : (
             <div className="stack">
               <b>Who is this person?</b>
               {TYPES.map(([t, l, h]) => <label key={t} className={`opt${adding.type === t ? " on" : ""}`}><input type="radio" name="ptype" checked={adding.type === t} onChange={() => setAdding({ ...adding, type: t })} /><span><b>{l}</b><br /><span className="hint">{h}</span></span></label>)}
               {adding.type === "other" && <label className="f">Which department? (needed)<input autoFocus value={adding.dept} placeholder="e.g. Engineering, Design, Marketing" onChange={(e) => setAdding({ ...adding, dept: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter") addPerson(); }} /></label>}
               <div className="row">
-                {adding.type && (adding.type !== "other" || adding.dept.trim()) && <a className="btn" href={searchUrl(role.company, adding.type, adding.dept)} target="_blank" rel="noopener noreferrer" title="Search LinkedIn" aria-label="Search LinkedIn">🔍</a>}
+                {adding.type && (adding.type !== "other" || adding.dept.trim()) && <a className="btn" href={searchUrl(role.company, adding.type, adding.dept)} target="_blank" rel="noopener noreferrer"><Icon name="search" />Search LinkedIn</a>}
                 <button className="primary" disabled={!adding.type || (adding.type === "other" && !adding.dept.trim())} onClick={addPerson}>Continue</button>
                 <button className="link" onClick={() => setAdding(null)}>Cancel</button>
               </div>
@@ -83,7 +84,7 @@ function Person({ c, role, me, reload }: { c: Contact; role: Role; me: any; relo
   const referral = `Thanks again for the call, ${first}. It helped, especially {what they told you}. ` + (c.type === "other" ? `I'm applying for the ${role.title} role. If you're comfortable, would you refer me? I can send my CV and a two-line summary.` : `I've applied for the ${role.title} role. If you think I'd fit, would you put my application forward?`);
   return (
     <div className="pbox">
-      <div className="row" style={{ justifyContent: "space-between" }}><span className="meta" style={{ fontFamily: "var(--mono)", textTransform: "uppercase", fontSize: 12 }}>{typeLabel(c)}</span><a className="btn" style={{ padding: "4px 8px" }} href={searchUrl(role.company, c.type, c.dept)} target="_blank" rel="noopener noreferrer" title="Search LinkedIn" aria-label="Search LinkedIn">🔍</a></div>
+      <div className="row" style={{ justifyContent: "space-between" }}><span className="eyebrow">{typeLabel(c)}</span><a className="btn iconbtn" href={searchUrl(role.company, c.type, c.dept)} target="_blank" rel="noopener noreferrer" title={`Search LinkedIn for this ${typeLabel(c).toLowerCase()}`}><Icon name="search" label={`Search LinkedIn for this ${typeLabel(c).toLowerCase()}`} /></a></div>
       {edit ? (
         <div className="stack">
           <label className="f">LinkedIn profile link<input value={d.linkedin_url} placeholder="linkedin.com/in/…" onChange={(e) => { const u = e.target.value; const m = u.match(/linkedin\.com\/in\/([^/?#\s]+)/i); setD({ ...d, linkedin_url: u, name: d.name || (m ? decodeURIComponent(m[1]).split("-").filter((x) => x && !/\d/.test(x)).map((x) => x[0].toUpperCase() + x.slice(1)).join(" ") : "") }); }} /></label>
@@ -101,22 +102,22 @@ function Person({ c, role, me, reload }: { c: Contact; role: Role; me: any; relo
             </button>); })}
         </div>
         <div className={`msg${due && c.status !== "Closed" ? " err" : ""}`}>{ns}</div>
-        {c.common && c.common.length > 0 && <div><span className="meta">In common</span><ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>{c.common.map((p, i) => <li key={i}>{p.point} {p.from && <span className="src">{p.from}</span>}</li>)}</ul></div>}
-        {c.followup && <details open={c.status === "Accepted"}><summary className={c.status === "Accepted" ? "due" : ""}>{c.status === "Accepted" ? "Send this follow-up today" : "Follow-up for when they accept"}</summary><p className="note">{c.followup}</p><button onClick={() => navigator.clipboard.writeText(c.followup!)}>Copy</button></details>}
-        {cur >= 4 && c.status !== "Closed" && <details open={c.status === "Replied"}><summary>Ask for a coffee chat</summary><p className="note">{coffee}</p><button onClick={() => navigator.clipboard.writeText(coffee)}>Copy</button></details>}
-        {cur >= 5 && c.status !== "Closed" && <details open={c.status === "Coffee chat"}><summary>{c.type === "other" ? "Ask for a referral" : "Ask them to put you forward"}</summary><p className="note">{referral}</p><p className="hint">Replace anything in braces before sending.</p><button onClick={() => navigator.clipboard.writeText(referral)}>Copy</button></details>}
+        {c.common && c.common.length > 0 && <div className="common"><span className="meta">In common</span><ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>{c.common.map((p, i) => <li key={i}>{p.point} {p.from && <span className="src">{p.from}</span>}</li>)}</ul></div>}
+        {c.followup && <details open={c.status === "Accepted"}><summary className={c.status === "Accepted" ? "due" : ""}>{c.status === "Accepted" ? "Send this follow-up today" : "Follow-up for when they accept"}</summary><p className="note">{c.followup}</p><button onClick={() => navigator.clipboard.writeText(c.followup!)}><Icon name="copy" />Copy</button></details>}
+        {cur >= 4 && c.status !== "Closed" && <details open={c.status === "Replied"}><summary>Ask for a coffee chat</summary><p className="note">{coffee}</p><button onClick={() => navigator.clipboard.writeText(coffee)}><Icon name="copy" />Copy</button></details>}
+        {cur >= 5 && c.status !== "Closed" && <details open={c.status === "Coffee chat"}><summary>{c.type === "other" ? "Ask for a referral" : "Ask them to put you forward"}</summary><p className="note">{referral}</p><p className="hint">Replace anything in braces before sending.</p><button onClick={() => navigator.clipboard.writeText(referral)}><Icon name="copy" />Copy</button></details>}
         <details open={cur < 1}><summary>Connection note</summary>
           <div className="stack" style={{ marginTop: 6 }}>
             <label className="f">Mutual connection (optional)<input value={mutual} onChange={(e) => setMutual(e.target.value)} /></label>
-            <button disabled={!!busy} onClick={async () => { const r = await ai<{ note: string }>("connection_note", { contact: ctx, me, mutual }, "Drafting…"); if (r) setNote(r.note); }}>{busy === "Drafting…" ? busy : "Draft with my AI"}</button>
-            {note && <><p className="note">{note}</p><div className="row"><span className="meta">{note.length} / 300</span><button onClick={() => navigator.clipboard.writeText(note)}>Copy note</button></div></>}
+            <button className="primary" disabled={!!busy} onClick={async () => { const r = await ai<{ note: string }>("connection_note", { contact: ctx, me, mutual }, "Drafting…"); if (r) setNote(r.note); }}>{busy === "Drafting…" ? <><span className="spin" aria-hidden="true" />Drafting…</> : <><Icon name="sparkles" />Draft with my AI</>}</button>
+            {note && <><p className="note">{note}</p><div className="row"><span className="meta">{note.length} / 300</span><button onClick={() => navigator.clipboard.writeText(note)}><Icon name="copy" />Copy note</button></div></>}
           </div>
         </details>
         <details><summary>Find common ground</summary>
           <div className="stack" style={{ marginTop: 6 }}>
             <p className="hint">LinkedIn doesn't let other apps read profiles. Open theirs, press Cmd+A then Cmd+C, and paste here. It's sent to your AI provider for this one request and not stored.</p>
             <textarea rows={4} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Paste their LinkedIn page" />
-            <button disabled={!!busy || paste.trim().length < 50} onClick={commonGround}>{busy === "Reading their profile…" ? busy : "Find common ground"}</button>
+            <button disabled={!!busy || paste.trim().length < 50} onClick={commonGround}>{busy === "Reading their profile…" ? <><span className="spin" aria-hidden="true" />Reading their profile…</> : <><Icon name="sparkles" />Find common ground</>}</button>
           </div>
         </details>
         <label className="f">Notes<textarea rows={2} defaultValue={c.notes ?? ""} onBlur={(e) => e.target.value !== (c.notes ?? "") && save({ notes: e.target.value })} /></label>

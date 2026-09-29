@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/icons.tsx";
 import { api, ApiError, currentUid, getConnections, type Conn } from "@/lib/client/ai.ts";
 import { forgetBrowserKey, loadBrowserKey, saveBrowserKey } from "@/lib/client/browser-vault.ts";
 
@@ -23,7 +24,7 @@ export default function AISettings() {
   const active = conns.find((c) => c.is_active);
   return (
     <div className="stack">
-      <div><h1>Connect your AI</h1><p className="meta" style={{ margin: 0 }}>Three Doors runs on your own AI account. Usage is billed by your provider to you, not by us.</p></div>
+      <div className="page-head"><div><h1>Connect your AI</h1><p>Three Doors runs on your own AI account. Usage is billed by your provider to you, not by us.</p></div></div>
       {err && <div className="msg err">{err}</div>}
       {!active && conns.length === 0 && <div className="msg warn">No AI connected yet. Pick a provider below.</div>}
       <div className="prov">
@@ -87,7 +88,7 @@ function Connected({ p, c, hasLocal, onChange, reload }: { p: Prov; c: Conn; has
   const missing = c.storage === "browser_only" && hasLocal === false;
   return (
     <div className="card stack">
-      <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0 }}>{p.displayName}</h2>{c.is_active ? <span className="chip">In use</span> : <button onClick={async () => { await api.post("/api/ai/update", { provider: c.provider, active: true }); reload(); }}>Use this one</button>}</div>
+      <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0 }}>{p.displayName}</h2>{c.is_active ? <span className="chip ok"><Icon name="check" />In use</span> : <button onClick={async () => { await api.post("/api/ai/update", { provider: c.provider, active: true }); reload(); }}>Use this one</button>}</div>
       <dl className="kv">
         <dt>Status</dt><dd>{missing ? <span className="due">Key not in this browser</span> : c.status === "connected" ? "Connected" : "Key rejected"}</dd>
         <dt>Account</dt><dd className="meta">Not available with API keys</dd>

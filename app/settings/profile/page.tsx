@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/icons.tsx";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client.ts";
 import { wipeBrowserVault } from "@/lib/client/browser-vault.ts";
@@ -16,7 +17,7 @@ export default function Profile() {
   const save = async (patch: Record<string, any>) => { setP({ ...p, ...patch }); await sb.from("profiles").update(patch).eq("id", p.id); setSaved("Saved"); setTimeout(() => setSaved(""), 1200); };
   return (
     <div className="stack" style={{ maxWidth: 720 }}>
-      <h1>Profile &amp; privacy</h1>
+      <div className="page-head"><div><h1>Profile &amp; privacy</h1><p>What your AI drafts are written from, and your data controls.</p></div></div>
       <div className="card stack">
         <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0 }}>About you</h2><span className="meta">{saved}</span></div>
         <p className="hint">Your AI drafts are written from these facts. Keep the real numbers.</p>
@@ -29,7 +30,7 @@ export default function Profile() {
       <div className="card stack">
         <h2>Your data</h2>
         <div className="row">
-          <a className="btn" href="/api/account/export">Download all my data (JSON)</a>
+          <a className="btn" href="/api/account/export"><Icon name="download" />Download all my data (JSON)</a>
           {del ? <button className="danger" onClick={async () => { const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); if (!r.ok) { alert("Deleting failed. Nothing was signed out; try again."); return; } await wipeBrowserVault(); router.push("/"); }}>Click again: delete everything</button>
             : <button className="danger" onClick={() => setDel(true)}>Delete my data and keys</button>}
         </div>

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client.ts";
 import { wipeBrowserVault } from "@/lib/client/browser-vault.ts";
+import { Icon } from "@/components/icons.tsx";
 
 type Social = { id: "google" | "linkedin_oidc"; label: string; icon: React.ReactNode };
 const SOCIAL: Social[] = [
@@ -50,20 +51,32 @@ export default function Login() {
 
   const socials = SOCIAL.filter((s) => enabled[s.id]);
   return (
-    <div className="card stack" style={{ maxWidth: 420 }}>
-      <h1>{mode === "in" ? "Sign in" : "Create your account"}</h1>
+    <div className="auth">
+      <aside className="auth-side">
+        <span className="brand-mark" style={{ background: "var(--on-primary)", color: "var(--primary)" }} aria-hidden="true"><Icon name="door" /></span>
+        <h2>Three people per role. One place to track them.</h2>
+        <ul>
+          <li><Icon name="briefcase" /><span>Hiring manager, recruiter, and someone who can refer you</span></li>
+          <li><Icon name="sparkles" /><span>Notes and follow-ups drafted by your own AI</span></li>
+          <li><Icon name="lock" /><span>Your key and your data stay yours</span></li>
+        </ul>
+      </aside>
+      <div className="auth-main stack">
+      <h1>{mode === "in" ? "Welcome back" : "Create your account"}</h1>
+      <p className="meta">{mode === "in" ? "Sign in to pick up where you left off." : "Free to use. You bring your own AI key."}</p>
       {socials.length > 0 && <>
-        {socials.map((s) => <button key={s.id} type="button" className="social" disabled={!!busy} onClick={() => social(s.id)}>{s.icon}<span>{busy === s.id ? "Redirecting…" : s.label}</span></button>)}
+        {socials.map((s) => <button key={s.id} type="button" className="social block" disabled={!!busy} onClick={() => social(s.id)}>{s.icon}<span>{busy === s.id ? "Redirecting…" : s.label}</span></button>)}
         <div className="or"><span>or with email</span></div>
       </>}
       <form onSubmit={go} className="stack">
         <label className="f">Email<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></label>
         <label className="f">Password<input type="password" required minLength={8} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete={mode === "in" ? "current-password" : "new-password"} /></label>
         {msg && <div className={`msg${msg.err ? " err" : ""}`}>{msg.t}</div>}
-        <button className="primary" disabled={!!busy}>{busy === "email" ? "…" : mode === "in" ? "Sign in" : "Create account"}</button>
+        <button className="primary block" disabled={!!busy}>{busy === "email" ? <span className="spin" aria-label="Working" /> : mode === "in" ? "Sign in" : "Create account"}</button>
       </form>
       <button type="button" className="link" onClick={() => { setMode(mode === "in" ? "up" : "in"); setMsg(null); }}>{mode === "in" ? "New here? Create an account" : "Have an account? Sign in"}</button>
       {socials.length > 0 && <p className="hint">Signing in with Google or LinkedIn shares only your name, email and profile photo with Three Doors. We can't post or read your connections.</p>}
+      </div>
     </div>
   );
 }
