@@ -15,6 +15,12 @@ jobs:
     name: Typecheck, tests, and production build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The production build must be able to compile browser-side Supabase code,
+    # but CI must never need access to the real user's database. These are
+    # deliberately non-production placeholders used only by the build.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ci_quality_gate
 
     steps:
       - name: Checkout
