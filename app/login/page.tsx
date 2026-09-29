@@ -21,14 +21,13 @@ export default function Login() {
   useEffect(() => {
     const err = new URLSearchParams(location.search).get("error");
     if (err) setMsg({ t: "That sign-in didn't complete. Try again, or use email and password.", err: true });
-    // Supabase publishes which sign-in providers are switched on; only show those.
     fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! } })
       .then((r) => r.json()).then((j) => setEnabled(j?.external ?? {})).catch(() => {});
   }, []);
 
   async function social(p: Social["id"]) {
     setBusy(p); setMsg(null);
-    await wipeBrowserVault(); // a new sign-in never inherits another account's browser keys
+    await wipeBrowserVault();
     const { error } = await supabaseBrowser().auth.signInWithOAuth({ provider: p, options: { redirectTo: `${location.origin}/auth/callback` } });
     if (error) { setMsg({ t: "Couldn't start that sign-in. Try again.", err: true }); setBusy(""); }
   }
@@ -49,8 +48,6 @@ export default function Login() {
     setBusy("");
   }
 
-  // Providers listed in NEXT_PUBLIC_AUTH_PROVIDERS always show (default: Google).
-  // Any other provider shows once Supabase reports it switched on.
   const always = (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? "google").split(",").map((x) => x.trim());
   const socials = SOCIAL.filter((s) => always.includes(s.id) || enabled[s.id]);
   return (
@@ -61,12 +58,12 @@ export default function Login() {
         <ul>
           <li><Icon name="briefcase" /><span>Hiring manager, recruiter, and someone who can refer you</span></li>
           <li><Icon name="sparkles" /><span>Notes and follow-ups drafted by your own AI</span></li>
-          <li><Icon name="lock" /><span>Your key and your data stay yours</span></li>
+          <li><Icon name="lock" /><span>Your account keeps your data separate from other users</span></li>
         </ul>
       </aside>
       <div className="auth-main stack">
       <h1>{mode === "in" ? "Welcome back" : "Create your account"}</h1>
-      <p className="meta">{mode === "in" ? "Sign in to pick up where you left off." : "Free to use. You bring your own AI key."}</p>
+      <p className="meta">{mode === "in" ? "Sign in to pick up where you left off." : "Create an account to save your profile, CV, job-search settings and other Three Doors data."}</p>
       {socials.length > 0 && <>
         {socials.map((s) => <button key={s.id} type="button" className="social block" disabled={!!busy} onClick={() => social(s.id)}>{s.icon}<span>{busy === s.id ? "Redirecting…" : s.label}</span></button>)}
         <div className="or"><span>or with email</span></div>
