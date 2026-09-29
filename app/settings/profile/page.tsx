@@ -33,11 +33,11 @@ export default function Profile() {
       <div className="card stack">
         <h2>Your data</h2>
         <div className="row">
-          <a className="btn" href="/api/account/export"><Icon name="download" />Download my saved data (JSON)</a>
+          <a className="btn" href="/api/account/export"><Icon name="download" />Download my available saved data (JSON)</a>
           {del ? <button className="danger" onClick={async () => { const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); if (!r.ok) { alert("Deleting failed. Nothing was signed out; try again."); return; } await wipeBrowserVault(); router.push("/"); }}>Click again: delete saved data</button>
-            : <button className="danger" onClick={() => setDel(true)}>Delete my saved data and keys</button>}
+            : <button className="danger" onClick={() => setDel(true)}>Delete your saved data and AI keys</button>}
         </div>
-        <p className="hint">Deleting clears your saved profile, career path, CVs, roles, contacts, openings, sources, search runs, AI connections and stored keys. Your sign-in account remains. Anonymous analytics uses a one-way identifier and isn't linked to your email.</p>
+        <p className="hint">Deleting removes your saved CVs, career information, roles, contacts, openings, sources, search history, AI connections and stored keys. Your Three Doors account remains active. Anonymous analytics uses a one-way identifier and isn't linked to your email.</p>
       </div>
     </div>
   );
