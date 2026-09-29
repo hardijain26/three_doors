@@ -34,7 +34,7 @@ export default function Profile() {
         <h2>Your data</h2>
         <div className="row">
           <a className="btn" href="/api/account/export"><Icon name="download" />Download my available saved data (JSON)</a>
-          {del ? <button className="danger" onClick={async () => { const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); if (!r.ok) { alert("Deleting failed. Nothing was signed out; try again."); return; } await wipeBrowserVault(); router.push("/"); }}>Click again: delete saved data</button>
+          {del ? <button className="danger" onClick={async () => { const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); if (!r.ok) { alert("We couldn't delete your saved data. Nothing was deleted. Please try again."); return; } await wipeBrowserVault(); router.push("/"); }}>Yes, delete my saved data</button>
             : <button className="danger" onClick={() => setDel(true)}>Delete your saved data and AI keys</button>}
         </div>
         <p className="hint">Deleting removes your saved CVs, career information, roles, contacts, openings, sources, search history, AI connections and stored keys. Your Three Doors account remains active. Anonymous analytics uses a one-way identifier and isn't linked to your email.</p>
@@ -70,7 +70,7 @@ function SearchSettings({ value, onSave }: { value: any; onSave: (v: any) => voi
 const SEARCH_FREQ: [string, string][] = [["off", "Off: only when I click Find jobs"], ["daily", "Once a day"], ["weekly", "Once a week"]];
 const SEARCH_DAYS: [string, string][] = [["1", "Monday"], ["2", "Tuesday"], ["3", "Wednesday"], ["4", "Thursday"], ["5", "Friday"], ["6", "Saturday"], ["0", "Sunday"]];
 type SearchSchedule = { freq: string; day: string; time: string };
-const scheduleDefaults = (s?: Partial<SearchSchedule>): SearchSchedule => ({ freq: s?.freq || "off", day: s?.day || "1", time: s?.time || "08:50" });
+const scheduleDefaults = (s?: Partial<SearchSchedule>): SearchSchedule => ({ freq: s?.freq || "off", day: s?.day || "1", time: s?.time || "09:00" });
 function AutomaticSearches({ value, onSave }: { value?: Partial<SearchSchedule>; onSave: (s: SearchSchedule) => void }) {
   const [s, setS] = useState<SearchSchedule>(scheduleDefaults(value));
   useEffect(() => setS(scheduleDefaults(value)), [value?.freq, value?.day, value?.time]);
@@ -87,7 +87,6 @@ function AutomaticSearches({ value, onSave }: { value?: Partial<SearchSchedule>;
   );
 }
 
-// "Near me", as in the tracker: links only, nothing is fetched.
 const KM: [number, string][] = [[10, "About 10 km"], [25, "About 25 km"], [50, "About 50 km"], [100, "About 100 km"]];
 const MILES: Record<number, number> = { 10: 5, 25: 10, 50: 25, 100: 50 };
 function NearMe({ near, roles, onSave }: { near: { area?: string; km?: number }; roles: string[]; onSave: (n: { area: string; km: number }) => void }) {
@@ -120,9 +119,9 @@ function Breaks({ value, onSave }: { value: any; onSave: (w: { session: number; 
   );
   return (
     <div className="card stack">
-      <div className="row between"><h2 style={{ margin: 0 }}>Breaks</h2><span className="meta">Today so far: {mins ?? 0} min</span></div>
+      <div className="row between"><h2 style={{ margin: 0 }}>Breaks</h2><span className="meta">Screen time today: {mins ?? 0} min</span></div>
       <div className="grid">{sel("session", "Break after")}{sel("brk", "Break length")}{sel("daily", "Daily time limit")}</div>
-      <p className="hint">When you reach a limit, Three Doors pauses and shows a break screen. After the daily limit it stays paused for an hour. You can also mark up to 5 roles as applied per day. Time counts only while this tab is open and you're using it, and the count stays in this browser.</p>
+      <p className="hint">When you reach a limit, Three Doors pauses and shows a break screen. After the daily limit it stays paused for an hour. You can also mark up to 5 roles as applied per day. Screen time is counted only while this Three Doors tab is open and active. The count stays in this browser.</p>
     </div>
   );
 }
