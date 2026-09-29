@@ -62,6 +62,28 @@ function SearchSettings({ value, onSave }: { value: any; onSave: (v: any) => voi
       <div className="row">{[["europe", "Remote within Europe"], ["worldwide", "Remote, anywhere"], ["india", "Remote from India"]].map(([k, l]) => (
         <label key={k} className="row" style={{ gap: 8 }}><input type="checkbox" style={{ width: 18, minHeight: 18 }} checked={!!v.remote?.[k]} onChange={(e) => commit({ ...v, remote: { ...(v.remote || {}), [k]: e.target.checked } })} />{l}</label>))}</div>
       <NearMe near={v.near || {}} roles={v.roles || []} onSave={(near) => commit({ ...v, near })} />
+      <AutomaticSearches value={v.schedule} onSave={(schedule) => commit({ ...v, schedule })} />
+    </div>
+  );
+}
+
+const SEARCH_FREQ: [string, string][] = [["off", "Off: only when I click Find jobs"], ["every6", "Every 6 hours"], ["every12", "Every 12 hours"], ["daily", "Once a day"], ["weekly", "Once a week"]];
+const SEARCH_DAYS: [string, string][] = [["1", "Monday"], ["2", "Tuesday"], ["3", "Wednesday"], ["4", "Thursday"], ["5", "Friday"], ["6", "Saturday"], ["0", "Sunday"]];
+type SearchSchedule = { freq: string; day: string; time: string };
+const scheduleDefaults = (s?: Partial<SearchSchedule>): SearchSchedule => ({ freq: s?.freq || "off", day: s?.day || "1", time: s?.time || "08:50" });
+function AutomaticSearches({ value, onSave }: { value?: Partial<SearchSchedule>; onSave: (s: SearchSchedule) => void }) {
+  const [s, setS] = useState<SearchSchedule>(scheduleDefaults(value));
+  useEffect(() => setS(scheduleDefaults(value)), [value?.freq, value?.day, value?.time]);
+  const save = (patch: Partial<SearchSchedule>) => { const next = scheduleDefaults({ ...s, ...patch }); setS(next); onSave(next); };
+  return (
+    <div className="stack" style={{ gap: 8, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+      <h3>Automatic searches</h3>
+      <p className="hint">Run Find jobs automatically using your saved search profile and enabled sources.</p>
+      <label className="f">How often<select value={s.freq} onChange={(e) => save({ freq: e.target.value })}>{SEARCH_FREQ.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select></label>
+      {s.freq === "weekly" && <label className="f">Day<select value={s.day} onChange={(e) => save({ day: e.target.value })}>{SEARCH_DAYS.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select></label>}
+      {(s.freq === "weekly" || s.freq === "daily") && <label className="f">Time (India)<input type="time" value={s.time} onChange={(e) => save({ time: e.target.value })} /></label>}
+      {(s.freq === "every6" || s.freq === "every12") && <p className="hint">The interval counts from the last completed search.</p>}
+      <p className="hint">Searches never run less than 6 hours apart. The same 20-opening daily limit applies to automatic searches.</p>
     </div>
   );
 }
