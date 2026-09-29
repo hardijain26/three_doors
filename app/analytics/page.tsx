@@ -14,9 +14,9 @@ const sentOn = (c: Contact) => c.status_history?.["Request sent"] || "";
 const wkStart = (s: string) => { const d = new Date(s + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
 
 export default function Analytics() {
-  const sb = supabaseBrowser();
+  const getSb = () => supabaseBrowser();
   const [rows, setRows] = useState<Row[] | null>(null);
-  useEffect(() => { Promise.all([sb.from("contacts").select("*"), sb.from("roles").select("*")]).then(([c, r]) => { const rm = Object.fromEntries((r.data ?? []).map((x: Role) => [x.id, x])); setRows((c.data ?? []).map((x: Contact) => ({ c: x, r: rm[x.role_id] }))); }); }, []);
+  useEffect(() => { const sb = getSb(); Promise.all([sb.from("contacts").select("*"), sb.from("roles").select("*")]).then(([c, r]) => { const rm = Object.fromEntries((r.data ?? []).map((x: Role) => [x.id, x])); setRows((c.data ?? []).map((x: Contact) => ({ c: x, r: rm[x.role_id] }))); }); }, []);
   const A = useMemo(() => agg(rows ?? []), [rows]);
   if (!rows) return <p className="meta">Loading…</p>;
   const ar = pct(A.acc, A.sent);

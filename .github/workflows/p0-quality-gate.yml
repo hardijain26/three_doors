@@ -1,0 +1,45 @@
+name: P0 Stage 1 Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, p0-stage1-ci-gate]
+
+concurrency:
+  group: p0-quality-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: Typecheck, tests, and production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The production build must be able to compile browser-side Supabase code,
+    # but CI must never need access to the real user's database. These are
+    # deliberately non-production placeholders used only by the build.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ci_quality_gate
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Automated tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
