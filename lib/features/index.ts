@@ -22,7 +22,7 @@ function parseJson(text: string): Record<string, unknown> {
   try { return JSON.parse(a >= 0 && b > a ? t.slice(a, b + 1) : t); } catch { throw new AIError("bad_output", 502); }
 }
 
-export type FeatureId = "connection_note" | "common_ground" | "career_skills" | "cv_keywords" | "cv_master" | "cv_tailor" | "extract_openings";
+export type FeatureId = "connection_note" | "common_ground" | "suggest_line" | "career_skills" | "cv_keywords" | "cv_master" | "cv_tailor" | "extract_openings";
 
 export interface FeatureDef<I, O> {
   id: FeatureId;
@@ -54,19 +54,19 @@ const connectionNote: FeatureDef<NoteIn, { note: string }> = {
   },
 };
 
-type CGIn = { contact: ContactCtx; me: AboutMe; profileText: string };
+type CGIn = { contact: ContactCtx; me: AboutMe; profileText: string; siteText?: string; extra?: string };
 type CGOut = { name: string; title: string; email: string; website: string; points: { point: string; from: string }[]; followup: string };
 const commonGround: FeatureDef<CGIn, CGOut> = {
   id: "common_ground", maxOutputTokens: 1200, json: true,
   validate(x: any) {
-    const profileText = clip(x?.profileText, 12000).trim();
-    if (!profileText || !x?.contact?.company) throw new AIError("bad_request", 400);
-    return { contact: x.contact, me: x.me ?? {}, profileText };
+    const profileText = clip(x?.profileText, 12000).trim(), siteText = clip(x?.siteText, 9000).trim(), extra = clip(x?.extra, 1500).trim();
+    if ((!profileText && !siteText && !extra) || !x?.contact?.company) throw new AIError("bad_request", 400);
+    return { contact: x.contact, me: x.me ?? {}, profileText, siteText, extra };
   },
   build(i) {
     return {
       system: "You help a job seeker open a real conversation on LinkedIn. Never invent a fact, number, employer, school or opinion. Every common point must be backed by something in MY BACKGROUND and something in THEIR PROFILE. If there is no real overlap, return an empty list. Plain words, no buzzwords, no em dashes, no flattery.",
-      user: `Their LinkedIn profile text is below. They are ${who(i.contact)} (${clip(i.contact.roleTitle, 120)} at ${clip(i.contact.company, 120)}).\n\n1. Extract their name, current title, an email only if they published one in the text (never guess), and their own website or blog if listed (not linkedin.com).\n2. Up to 3 points of real common ground, strongest first, each naming both sides.\n3. A follow-up message for the day they accept my request: under 600 characters, starting "Thanks for connecting, <first name>.", opening with the strongest point, tying it to one of my results with its real number, ending with one easy question.\n\nReply as JSON {"name":"","title":"","email":"","website":"","points":[{"point":"","from":"profile|post"}],"followup":""}.\n\nMY BACKGROUND:\n${aboutText(i.me)}\n\nTHEIR PROFILE:\n${i.profileText}`,
+      user: `Their LinkedIn profile text is below. They are ${who(i.contact)} (${clip(i.contact.roleTitle, 120)} at ${clip(i.contact.company, 120)}).\n\n1. Extract their name, current title, an email only if they published one in the text (never guess), and their own website or blog if listed (not linkedin.com).\n2. Up to 3 points of real common ground, strongest first, each naming both sides.\n3. A follow-up message for the day they accept my request: under 600 characters, starting "Thanks for connecting, <first name>.", opening with the strongest point, tying it to one of my results with its real number, ending with one easy question.\n\nReply as JSON {"name":"","title":"","email":"","website":"","points":[{"point":"","from":"profile|post|website"}],"followup":""}. The follow-up ends with a question ${i.contact.type === "other" ? "about their team" : i.contact.type === "rec" ? "about the hiring process" : "about the problem the role owns"}. If there are no points, build it around the role instead.\n\nMY BACKGROUND:\n${aboutText(i.me)}\n\nTHEIR PROFILE:\n${i.profileText || "(not pasted)"}${i.extra ? `\n\nWHAT I ALREADY KNOW ABOUT THEM:\n${i.extra}` : ""}${i.siteText ? `\n\nTHEIR WEBSITE:\n${i.siteText}` : ""}`,
     };
   },
   parse(text) {
@@ -81,6 +81,24 @@ const commonGround: FeatureDef<CGIn, CGOut> = {
   },
 };
 
+
+type SLIn = { contact: ContactCtx; me: AboutMe; text: string };
+/** One line for the connection note, taken from something the person posted. */
+const suggestLine: FeatureDef<SLIn, { line: string }> = {
+  id: "suggest_line", maxOutputTokens: 200, json: true,
+  validate(x: any) {
+    const text = clip(x?.text, 4000).trim();
+    if (!text || !x?.contact?.company) throw new AIError("bad_request", 400);
+    return { contact: x.contact, me: x.me ?? {}, text };
+  },
+  build(i) {
+    const ask = i.contact.type === "other"
+      ? "Name what this LinkedIn post is about as a short topic phrase of 3 to 8 words, lowercase, no quotes, that fits the sentence 'your post on ___ stuck with me'."
+      : `Write one sentence of at most 110 characters, in first person, naming the specific part of this person's product or team work that a ${clip(i.me.last_role, 60) || "product manager"} who ran ${clip(i.me.owned, 200) || "product work"} at ${clip(i.me.last_company, 80) || "their last company"} would most want to work on. Plain words, no hype, no em dashes.`;
+    return { system: "You help write a LinkedIn connection note for a job seeker. Use only the text given.", user: `Role: ${clip(i.contact.roleTitle, 120)} at ${clip(i.contact.company, 120)}. ${ask} Base it only on the text below. Reply as JSON {"line": "..."}.\n\nText:\n${i.text}` };
+  },
+  parse(text) { return { line: clip(String(parseJson(text).line ?? "").trim(), 160) }; },
+};
 
 // ---------------- Career path ----------------
 type Step = { title?: string; org?: string; years?: string; did?: string };
@@ -209,7 +227,7 @@ const extractOpenings: FeatureDef<ExtractIn, { openings: FoundOpening[] }> = {
 };
 
 export const FEATURES: Record<FeatureId, FeatureDef<any, any>> = {
-  connection_note: connectionNote, common_ground: commonGround,
+  connection_note: connectionNote, common_ground: commonGround, suggest_line: suggestLine,
   career_skills: careerSkills, cv_keywords: cvKeywords, cv_master: cvMaster, cv_tailor: cvTailor, extract_openings: extractOpenings,
 };
 export function isFeatureId(x: unknown): x is FeatureId { return typeof x === "string" && Object.hasOwn(FEATURES, x); }

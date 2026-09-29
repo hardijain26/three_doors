@@ -207,3 +207,18 @@ begin
 end $$;
 revoke all on function public.start_search_run(int) from public, anon;
 grant execute on function public.start_search_run(int) to authenticated;
+
+-- Tracker parity: contact fields, company filter, status date, break settings
+alter table public.contacts
+  add column if not exists website text check (website is null or length(website) <= 300),
+  add column if not exists mutual text check (mutual is null or length(mutual) <= 120),
+  add column if not exists shared text check (shared is null or length(shared) <= 200),
+  add column if not exists topic text check (topic is null or length(topic) <= 200),
+  add column if not exists msg_coffee text check (msg_coffee is null or length(msg_coffee) <= 2000),
+  add column if not exists msg_ref text check (msg_ref is null or length(msg_ref) <= 2000),
+  add column if not exists hook text check (hook is null or hook in ('mutual','shared','none')),
+  add column if not exists status_on date;
+alter table public.roles add column if not exists cid text check (cid is null or cid ~ '^[0-9]{2,20}$');
+alter table public.openings add column if not exists cid text check (cid is null or cid ~ '^[0-9]{2,20}$');
+alter table public.profiles add column if not exists wellbeing jsonb not null default '{}'::jsonb
+  check (jsonb_typeof(wellbeing) = 'object' and pg_column_size(wellbeing) < 2000);
