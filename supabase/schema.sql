@@ -148,3 +148,62 @@ begin
 end $$;
 revoke all on function public.track_event(text, jsonb) from public, anon;
 grant execute on function public.track_event(text, jsonb) to authenticated;
+
+-- ============ Added 2026-09-29: Openings, Career path, CV ============
+alter table public.profiles add column if not exists search jsonb not null default '{}'::jsonb, add column if not exists linkedin_url text, add column if not exists portfolio text, add column if not exists based_in text;
+
+create table public.career (
+  user_id uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  target text, steps jsonb not null default '[]'::jsonb, skills jsonb not null default '[]'::jsonb,
+  gaps jsonb not null default '[]'::jsonb, bridge text, updated_at timestamptz not null default now());
+create table public.cv_docs (
+  user_id uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  prompt_fields jsonb, prompt text, source text, master text, master_diff jsonb not null default '[]'::jsonb,
+  template text not null default 'classic' check (template in ('classic','modern','compact')),
+  prompt_at timestamptz, master_at timestamptz, updated_at timestamptz not null default now());
+create table public.cv_versions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  job_key text not null, company text, title text, link text, jd text, keywords jsonb not null default '[]'::jsonb,
+  md text, analysis text, updated_at timestamptz not null default now(), unique (user_id, job_key));
+create table public.sources (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null, url text not null check (url ~ '^https://[^\s]{4,500}$'),
+  enabled boolean not null default true, fav boolean not null default false,
+  last_checked timestamptz, last_found int, last_error text, created_at timestamptz not null default now(), unique (user_id, url));
+create table public.openings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  source_id uuid references public.sources(id) on delete set null,
+  company text not null, title text not null, location text, link text, score int check (score between 0 and 100),
+  why text, flag text, state text not null default 'new' check (state in ('new','added','hidden')),
+  manual boolean not null default false, found_on date not null default current_date,
+  created_at timestamptz not null default now(), unique (user_id, link));
+create index on public.openings (user_id, state);
+create table public.search_runs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  status text not null check (status in ('running','done','failed')),
+  started_at timestamptz not null default now(), finished_at timestamptz,
+  checked int not null default 0, total int not null default 0, added int not null default 0, note text);
+create index on public.search_runs (user_id, started_at desc);
+alter table public.roles add column if not exists opening_id uuid references public.openings(id) on delete set null;
+do $$ declare t text; begin
+  foreach t in array array['career','cv_docs','cv_versions','sources','openings','search_runs'] loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('create policy "own rows" on public.%I for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()))', t);
+  end loop; end $$;
+
+create or replace function public.start_search_run(p_total int) returns uuid
+language plpgsql security invoker set search_path = '' as $$
+declare uid uuid := auth.uid(); rid uuid;
+begin
+  if uid is null then return null; end if;
+  perform pg_advisory_xact_lock(hashtext('search_run:' || uid::text));
+  if exists (select 1 from public.search_runs where user_id = uid and status <> 'failed' and started_at > now() - interval '6 hours') then return null; end if;
+  insert into public.search_runs (user_id, status, total) values (uid, 'running', p_total) returning id into rid;
+  return rid;
+end $$;
+revoke all on function public.start_search_run(int) from public, anon;
+grant execute on function public.start_search_run(int) to authenticated;

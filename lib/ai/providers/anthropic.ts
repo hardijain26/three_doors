@@ -40,13 +40,13 @@ export const AnthropicProvider: AIProvider = {
     return models[0]?.id ?? null;
   },
   async generate(c, req) {
-    const r = await call(`${BASE}/messages`, { method: "POST", headers: headers(c), body: body(req, false), signal: req.signal });
+    const r = await call(`${BASE}/messages`, { method: "POST", headers: headers(c), body: body(req, false), signal: req.signal, timeoutMs: req.timeoutMs });
     const j = (await r.json()) as { content?: { type: string; text?: string }[]; usage?: { input_tokens?: number; output_tokens?: number }; model?: string };
     const text = (j.content ?? []).filter((p) => p.type === "text").map((p) => p.text ?? "").join("");
     return { text, model: j.model ?? req.model, usage: { inputTokens: j.usage?.input_tokens ?? null, outputTokens: j.usage?.output_tokens ?? null } };
   },
   async *streamGenerate(c, req) {
-    const r = await call(`${BASE}/messages`, { method: "POST", headers: headers(c), body: body(req, true), signal: req.signal });
+    const r = await call(`${BASE}/messages`, { method: "POST", headers: headers(c), body: body(req, true), signal: req.signal, timeoutMs: req.timeoutMs });
     let input: number | null = null, output: number | null = null;
     for await (const ev of sse(r)) {
       const j = JSON.parse(ev.data);

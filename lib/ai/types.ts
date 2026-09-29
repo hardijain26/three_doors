@@ -20,6 +20,7 @@ export interface GenerateRequest {
   maxOutputTokens?: number;
   json?: boolean;
   signal?: AbortSignal;
+  timeoutMs?: number;
 }
 
 export interface Usage { inputTokens: number | null; outputTokens: number | null }

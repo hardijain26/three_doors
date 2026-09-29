@@ -7,7 +7,7 @@ import { wipeBrowserVault } from "@/lib/client/browser-vault.ts";
 
 const FIELDS: [string, string, string][] = [
   ["first_name", "First name (how you sign messages)", "Hardi"], ["last_role", "Your last job title", "Product Manager"], ["last_company", "Last company", "PayU"],
-  ["owned", "What you owned there", "web checkout, payment links and the SDK"], ["results", "Your best results, with their numbers", "Filtering bot traffic lifted checkout conversion 7%"], ["background", "Background before that (optional)", "Chartered Accountant"],
+  ["owned", "What you owned there", "web checkout, payment links and the SDK"], ["results", "Your best results, with their numbers", "Filtering bot traffic lifted checkout conversion 7%"], ["background", "Background before that (optional)", "Chartered Accountant"], ["based_in", "Where you live now", "Bengaluru, India"], ["portfolio", "Portfolio or website (optional)", "yourname.com"], ["linkedin_url", "Your LinkedIn profile URL", "https://www.linkedin.com/in/your-name"],
 ];
 export default function Profile() {
   const sb = supabaseBrowser(); const router = useRouter();
@@ -23,6 +23,7 @@ export default function Profile() {
         <p className="hint">Your AI drafts are written from these facts. Keep the real numbers.</p>
         {FIELDS.map(([k, l, ph]) => <label key={k} className="f">{l}{k === "results" ? <textarea rows={3} defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} /> : <input defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} />}</label>)}
       </div>
+      <SearchSettings value={p.search || {}} onSave={(search) => save({ search })} />
       <div className="card stack">
         <h2>Product analytics</h2>
         <label className="opt" style={{ cursor: "pointer" }}><input type="checkbox" checked={!p.telemetry_opt_out} onChange={(e) => save({ telemetry_opt_out: !e.target.checked })} /><span>Share anonymous product events (feature used, model, timing, success). Never your content.</span></label>
@@ -36,6 +37,28 @@ export default function Profile() {
         </div>
         <p className="hint">Deleting removes your roles, contacts, notes, AI connections and stored keys. Anonymous analytics can't be linked back to you, so there's nothing there to delete.</p>
       </div>
+    </div>
+  );
+}
+
+const LISTS: [string, string, string][] = [["roles", "Job titles to search for", "e.g. Growth Product Manager"], ["countries", "Countries", "e.g. Netherlands"], ["cities", "Cities", "e.g. Amsterdam"], ["skip", "Industries to skip", "e.g. crypto"]];
+function SearchSettings({ value, onSave }: { value: any; onSave: (v: any) => void }) {
+  const [v, setV] = useState<any>({ roles: [], countries: [], cities: [], skip: [], remote: {}, ...value });
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const commit = (next: any) => { setV(next); onSave(next); };
+  const add = (k: string) => { const vals = (drafts[k] || "").split(/[,;\n]/).map((x) => x.trim()).filter(Boolean); if (!vals.length) return; const list = [...(v[k] || [])]; vals.forEach((x) => { if (!list.some((y: string) => y.toLowerCase() === x.toLowerCase())) list.push(x); }); setDrafts({ ...drafts, [k]: "" }); commit({ ...v, [k]: list }); };
+  return (
+    <div className="card stack">
+      <h2>Job search</h2>
+      <p className="hint">Used by Find jobs on the Openings tab and by the "match my profile" filter.</p>
+      <div className="grid">{LISTS.map(([k, l, ph]) => (
+        <div key={k} className="stack" style={{ gap: 6 }}>
+          <span className="f">{l}</span>
+          <div className="row" style={{ gap: 6 }}>{(v[k] || []).length ? (v[k] as string[]).map((x, i) => <span key={x} className="chip mute">{x}<button className="link" style={{ minHeight: 0, textDecoration: "none" }} aria-label={`Remove ${x}`} onClick={() => commit({ ...v, [k]: v[k].filter((_: string, j: number) => j !== i) })}>×</button></span>) : <span className="hint">None yet</span>}</div>
+          <div className="row" style={{ flexWrap: "nowrap" }}><input value={drafts[k] || ""} placeholder={ph} aria-label={`Add to ${l}`} onChange={(e) => setDrafts({ ...drafts, [k]: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(k); } }} /><button onClick={() => add(k)}>Add</button></div>
+        </div>))}</div>
+      <div className="row">{[["europe", "Remote within Europe"], ["worldwide", "Remote, anywhere"], ["india", "Remote from India"]].map(([k, l]) => (
+        <label key={k} className="row" style={{ gap: 8 }}><input type="checkbox" style={{ width: 18, minHeight: 18 }} checked={!!v.remote?.[k]} onChange={(e) => commit({ ...v, remote: { ...(v.remote || {}), [k]: e.target.checked } })} />{l}</label>))}</div>
     </div>
   );
 }

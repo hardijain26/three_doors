@@ -1,0 +1,23 @@
+/* Types for the helpers ported from the personal tracker (legacy.js). */
+export function esc(s: unknown): string;
+export function cap(s: string): string;
+export function dot(s: string): string;
+export function lc(s: unknown): string;
+export function hasKw(text: string, k: string): boolean;
+export function markKw(htmlEsc: string, kws: string[]): string;
+export function mdInline(x: string, kws?: string[]): string;
+export function mdHtml(md: string, kws?: string[], chg?: Record<string, number> | null): string;
+export function nums(t: string): string[];
+export const PF_IDS: string[];
+export const PF_PRESETS: Record<string, Record<string, string>>;
+export const PF_FORM: [string, [string, string, string, string, (number | string)?][]][];
+export function pfLines(s: string): string[];
+export function buildPrompt(v: Record<string, string>, mark: boolean): string;
+export function mdLines(md: string): Record<string, number>;
+export function plain(x: string): string;
+export const TPLS: Record<string, { name: string; desc: string }>;
+export function buildPdf(md: string, lib: unknown, key: string): { output(t: "arraybuffer"): ArrayBuffer };
+export function durOf(t: string): number | null;
+export function fmtDur(y: number | null): string;
+export function stepName(s: { org?: string; title?: string }, i: number): string;
+export function evOk(sk: { evidence?: string }, c: { steps: { did: string; title: string; org: string }[] }): boolean;

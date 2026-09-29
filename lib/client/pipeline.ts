@@ -3,7 +3,7 @@ export const SHORT: Record<string, string> = { "Request sent": "Sent", Accepted:
 export const ALL_STATUSES = [...STEPS, "Closed"];
 export type ContactType = "hm" | "rec" | "other";
 export interface Contact { id: string; role_id: string; type: ContactType; dept: string | null; name: string | null; title: string | null; linkedin_url: string | null; email: string | null; notes: string | null; status: string; status_history: Record<string, string>; common: { point: string; from: string }[] | null; followup: string | null; updated_at: string }
-export interface Role { id: string; company: string; title: string; location: string | null; link: string | null; fit: string | null; angle: string | null; applied_on: string | null; created_at: string }
+export interface Role { id: string; company: string; title: string; location: string | null; link: string | null; fit: string | null; angle: string | null; applied_on: string | null; created_at: string; opening_id?: string | null }
 
 export const typeLabel = (c: Pick<Contact, "type" | "dept">) => c.type === "hm" ? "Hiring manager" : c.type === "rec" ? "Recruiter" : `${c.dept || "Other"} team`;
 export const today = () => new Date().toISOString().slice(0, 10);

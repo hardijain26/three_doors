@@ -45,13 +45,13 @@ export const OpenAIProvider: AIProvider = {
     return models[0]?.id ?? null;
   },
   async generate(c, req) {
-    const r = await call(`${BASE}/responses`, { method: "POST", headers: headers(c), body: body(req, false), signal: req.signal });
+    const r = await call(`${BASE}/responses`, { method: "POST", headers: headers(c), body: body(req, false), signal: req.signal, timeoutMs: req.timeoutMs });
     const j = (await r.json()) as { output?: { type: string; content?: { type: string; text?: string }[] }[]; usage?: { input_tokens?: number; output_tokens?: number }; model?: string };
     const text = (j.output ?? []).flatMap((o) => o.content ?? []).filter((p) => p.type === "output_text").map((p) => p.text ?? "").join("");
     return { text, model: j.model ?? req.model, usage: { inputTokens: j.usage?.input_tokens ?? null, outputTokens: j.usage?.output_tokens ?? null } };
   },
   async *streamGenerate(c, req) {
-    const r = await call(`${BASE}/responses`, { method: "POST", headers: headers(c), body: body(req, true), signal: req.signal });
+    const r = await call(`${BASE}/responses`, { method: "POST", headers: headers(c), body: body(req, true), signal: req.signal, timeoutMs: req.timeoutMs });
     for await (const ev of sse(r)) {
       if (ev.data === "[DONE]") break;
       const j = JSON.parse(ev.data);

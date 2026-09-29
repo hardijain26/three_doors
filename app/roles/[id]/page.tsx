@@ -55,7 +55,7 @@ export default function RolePage() {
           )}
         </div>
       </div>
-      <div className="row">{delRole ? <button className="danger" onClick={async () => { await sb.from("roles").delete().eq("id", id); router.push("/roles"); }}>Click again: delete this role and its people</button> : <button className="danger" onClick={() => setDelRole(true)}>Delete role</button>}</div>
+      <div className="row">{delRole ? <button className="danger" onClick={async () => { if (role.opening_id) await sb.from("openings").update({ state: "new" }).eq("id", role.opening_id); await sb.from("roles").delete().eq("id", id); router.push("/roles"); }}>Click again: delete this role and its people</button> : <button className="danger" onClick={() => setDelRole(true)}>Delete role</button>}</div>
     </div>
   );
 }

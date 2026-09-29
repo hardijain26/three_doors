@@ -34,13 +34,22 @@ export async function resolveCredential(sb: SupabaseClient, user: User, provider
 const MODEL_SHAPE = /^(gpt-|o\d|chatgpt-|claude-|gemini-|gemma-)[a-z0-9.:\-]{1,50}$/i;
 const telemetryModel = (m: string) => (MODEL_SHAPE.test(m) ? m : "other");
 
+export type Prepared = Awaited<ReturnType<typeof resolveCredential>>;
+
 export async function runFeature(sb: SupabaseClient, user: User, featureId: FeatureId, rawInput: unknown, browserKey?: string | null, expectProvider?: string) {
-  const feature = FEATURES[featureId];
-  const input = feature.validate(rawInput);
+  const input = FEATURES[featureId].validate(rawInput);
   const { data: allowed } = await sb.rpc("rate_ok", { p_bucket: "ai_run", p_max: 60, p_window_seconds: 600 });
   if (allowed === false) throw new AIError("rate_limited", 429);
-  const { conn, cred } = await resolveCredential(sb, user, undefined, browserKey);
-  if (expectProvider && expectProvider !== conn.provider) throw new AIError("not_connected", 409);
+  const ctx = await resolveCredential(sb, user, undefined, browserKey);
+  if (expectProvider && expectProvider !== ctx.conn.provider) throw new AIError("not_connected", 409);
+  return runPrepared(sb, ctx, featureId, input);
+}
+
+/** Runs one feature with an already-resolved credential (used by batch jobs such as job search). */
+export async function runPrepared(sb: SupabaseClient, ctx: Prepared, featureId: FeatureId, rawInput: unknown) {
+  const feature = FEATURES[featureId];
+  const input = feature.validate(rawInput);
+  const { conn, cred } = ctx;
   const provider = getProvider(conn.provider);
   const model = conn.default_model || "";
   if (!model) throw new AIError("model_not_found", 400);
@@ -48,7 +57,7 @@ export async function runFeature(sb: SupabaseClient, user: User, featureId: Feat
   const t0 = Date.now();
   let usage = { inputTokens: null as number | null, outputTokens: null as number | null };
   try {
-    const res = await provider.generate(cred, { model, system, messages: [{ role: "user", content: prompt }], json: feature.json, maxOutputTokens: feature.maxOutputTokens });
+    const res = await provider.generate(cred, { model, system, messages: [{ role: "user", content: prompt }], json: feature.json, maxOutputTokens: feature.maxOutputTokens, timeoutMs: feature.timeoutMs });
     usage = res.usage;
     const out = feature.parse(res.text);
     track(sb, { event: "ai_request_completed", props: { feature: featureId, provider: conn.provider, model: telemetryModel(model), storage: conn.storage, duration_ms: Date.now() - t0, input_tokens: usage.inputTokens, output_tokens: usage.outputTokens, success: true } });

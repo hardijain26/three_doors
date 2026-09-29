@@ -34,3 +34,14 @@ export async function runFeature<T>(feature: string, input: unknown): Promise<T>
 }
 
 export const api = { post };
+
+/** POSTs to one of our routes, attaching the browser-held key when the active connection keeps it in this browser. */
+export async function postWithKey<T>(url: string, body: unknown): Promise<T> {
+  const { connections } = await getConnections();
+  const active = connections.find((c) => c.is_active);
+  if (!active) throw new ApiError("not_connected", "Connect an AI provider in AI settings first.");
+  const uid = await currentUid();
+  const key = active.storage === "browser_only" && uid ? await loadBrowserKey(uid, active.provider) : null;
+  if (active.storage === "browser_only" && !key) throw new ApiError("browser_key_missing", "Your key is saved in a different browser. Enter it again in AI settings on this device.");
+  return post(url, body, key) as Promise<T>;
+}

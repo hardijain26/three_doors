@@ -11,7 +11,13 @@ export async function POST() {
       await sb.from("credentials").delete().eq("user_id", user.id),
       await sb.from("provider_connections").delete().eq("user_id", user.id),
       await sb.from("roles").delete().eq("user_id", user.id), // contacts cascade
-      await sb.from("profiles").update({ first_name: null, last_role: null, last_company: null, owned: null, results: null, background: null, display_name: null }).eq("id", user.id),
+      await sb.from("openings").delete().eq("user_id", user.id),
+      await sb.from("sources").delete().eq("user_id", user.id),
+      await sb.from("search_runs").delete().eq("user_id", user.id),
+      await sb.from("cv_versions").delete().eq("user_id", user.id),
+      await sb.from("cv_docs").delete().eq("user_id", user.id),
+      await sb.from("career").delete().eq("user_id", user.id),
+      await sb.from("profiles").update({ first_name: null, last_role: null, last_company: null, owned: null, results: null, background: null, display_name: null, based_in: null, portfolio: null, linkedin_url: null, search: {} }).eq("id", user.id),
     ];
     const failed = steps.find((s) => s.error);
     if (failed) throw failed.error;

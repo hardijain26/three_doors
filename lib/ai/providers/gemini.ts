@@ -44,12 +44,12 @@ export const GeminiProvider: AIProvider = {
     return models[0]?.id ?? null;
   },
   async generate(c, req) {
-    const r = await call(`${BASE}/models/${path(req.model)}:generateContent`, { method: "POST", headers: headers(c), body: body(req), signal: req.signal });
+    const r = await call(`${BASE}/models/${path(req.model)}:generateContent`, { method: "POST", headers: headers(c), body: body(req), signal: req.signal, timeoutMs: req.timeoutMs });
     const j = (await r.json()) as GenResp;
     return { text: textOf(j), model: j.modelVersion ?? req.model, usage: usageOf(j) };
   },
   async *streamGenerate(c, req) {
-    const r = await call(`${BASE}/models/${path(req.model)}:streamGenerateContent?alt=sse`, { method: "POST", headers: headers(c), body: body(req), signal: req.signal });
+    const r = await call(`${BASE}/models/${path(req.model)}:streamGenerateContent?alt=sse`, { method: "POST", headers: headers(c), body: body(req), signal: req.signal, timeoutMs: req.timeoutMs });
     let last: GenResp = {};
     for await (const ev of sse(r)) {
       const j = JSON.parse(ev.data) as GenResp; last = j;
