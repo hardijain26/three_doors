@@ -213,6 +213,22 @@ function NearMe({ near, roles, onSave }: { near: { area?: string; km?: number };
     onSave({ area: area.trim().slice(0, 120), km: +e.target.value });
   };
 
+  const renderLinks = () => {
+    if (!a) return <p className="hint">Add your area to get map and job search links for companies near you.</p>;
+    return (
+      <div className="stack" style={{ gap: 4 }}>
+        <a href={`https://www.google.com/maps/search/${q("software companies near " + a)}`} target="_blank" rel="noopener noreferrer">Software companies on Google Maps</a>
+        <a href={`https://www.google.com/maps/search/${q("tech startups near " + a)}`} target="_blank" rel="noopener noreferrer">Tech startups on Google Maps</a>
+        {roles.slice(0, 4).map((r) => (
+          <span key={r} className="stack" style={{ gap: 4 }}>
+            <a href={`https://www.google.com/search?q=${q(r + " jobs near " + a)}&ibp=htl;jobs`} target="_blank" rel="noopener noreferrer">{r} jobs near you (Google Jobs)</a>
+            <a href={`https://www.linkedin.com/jobs/search/?keywords=${q(r)}&location=${q(a)}&distance=${MILES[km] || 25}`} target="_blank" rel="noopener noreferrer">{r} on LinkedIn Jobs</a>
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="stack" style={{ gap: 8, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
       <h3>Near me</h3>
@@ -220,18 +236,7 @@ function NearMe({ near, roles, onSave }: { near: { area?: string; km?: number };
         <label className="f">Your area<input value={area} placeholder="e.g. Koramangala, Bengaluru" onChange={(e) => setArea(e.target.value)} onBlur={handleAreaBlur} /></label>
         <label className="f">Distance<select value={km} onChange={handleDistanceChange}>{KM.map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
       </div>
-      {!a ? <p className="hint">Add your area to get map and job search links for companies near you.</p> : (
-        <div className="stack" style={{ gap: 4 }}>
-          <a href={`https://www.google.com/maps/search/${q("software companies near " + a)}`} target="_blank" rel="noopener noreferrer">Software companies on Google Maps</a>
-          <a href={`https://www.google.com/maps/search/${q("tech startups near " + a)}`} target="_blank" rel="noopener noreferrer">Tech startups on Google Maps</a>
-          {roles.slice(0, 4).map((r) => (
-            <span key={r} className="stack" style={{ gap: 4 }}>
-              <a href={`https://www.google.com/search?q=${q(r + " jobs near " + a)}&ibp=htl;jobs`} target="_blank" rel="noopener noreferrer">{r} jobs near you (Google Jobs)</a>
-              <a href={`https://www.linkedin.com/jobs/search/?keywords=${q(r)}&location=${q(a)}&distance=${MILES[km] || 25}`} target="_blank" rel="noopener noreferrer">{r} on LinkedIn Jobs</a>
-            </span>
-          ))}
-        </div>
-      )}
+      {renderLinks()}
     </div>
   );
 }
@@ -255,7 +260,7 @@ function AutomaticSearches({ value, onSave }: { value?: Partial<SearchSchedule>;
 function WellbeingSettings({ profile, onSave }: { profile: any; onSave: any }) {
   const w = wbCfg(profile.wellbeing), mins = useScreenMinutes();
   const sel = (k: "session" | "brk" | "daily", label: string) => (
-    <label className="f">{label}<select value={w[k]} onChange={(e) => onPave({ wellbeing: { ...w, [k]: +e.target.value } })}>{WB_OPTS[k].map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
+    <label className="f">{label}<select value={w[k]} onChange={(e) => onSave({ wellbeing: { ...w, [k]: +e.target.value } })}>{WB_OPTS[k].map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
   );
   return (
     <div className="card stack">
