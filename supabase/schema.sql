@@ -214,6 +214,24 @@ end $$;
 revoke all on function public.start_search_run(int) from public, anon;
 grant execute on function public.start_search_run(int) to authenticated;
 
+create or replace function public.start_scheduled_search_run(p_user_id uuid, p_total int) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare rid uuid;
+begin
+  if coalesce(auth.role(), '') <> 'service_role' then
+    raise exception 'service role required' using errcode = '42501';
+  end if;
+  if p_user_id is null or p_total < 0 then
+    raise exception 'invalid scheduled search run' using errcode = '22023';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('search_run:' || p_user_id::text));
+  if exists (select 1 from public.search_runs where user_id = p_user_id and status <> 'failed' and started_at > now() - interval '6 hours') then return null; end if;
+  insert into public.search_runs (user_id, status, total) values (p_user_id, 'running', p_total) returning id into rid;
+  return rid;
+end $$;
+revoke all on function public.start_scheduled_search_run(uuid, int) from public, anon, authenticated;
+grant execute on function public.start_scheduled_search_run(uuid, int) to service_role;
+
 -- Tracker parity: contact fields, company filter, status date, break settings
 alter table public.contacts
   add column if not exists website text check (website is null or length(website) <= 300),

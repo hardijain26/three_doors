@@ -17,6 +17,7 @@
 - Every user table has row-level security: `user_id = auth.uid()` for select, insert, update and delete. Contacts can only attach to the user's own roles.
 - The Supabase anon key in the browser can only reach rows the signed-in user owns.
 - `credentials` is also owner-only. A user can read their own ciphertext, which is useless without the server's master key.
+- Account deletion signs out first, then deletes the Auth user; cascading foreign keys remove its associated rows as one database operation.
 
 ## Browser hardening (`next.config.mjs`)
 
@@ -30,8 +31,7 @@
 
 1. `script-src` allows `'unsafe-inline'` because Next.js inlines bootstrap scripts. Moving to nonce-based CSP would close this.
 2. Rate limits are per user only. A per-IP limit on sign-up and connect would slow down anyone creating many accounts to test stolen keys.
-7. Supabase session cookies are readable by script (`@supabase/ssr` default), so an XSS could steal a session. Nonce-based CSP (gap 1) is the main defence.
-3. Account deletion clears all data and keys but doesn't delete the auth user; that needs the service-role key in a server-only admin route.
+3. Supabase session cookies are readable by script (`@supabase/ssr` default), so an XSS could steal a session. Nonce-based CSP (gap 1) is the main defence.
 4. Supabase's default email sender is rate-limited. Set up custom SMTP before inviting users.
 5. The master key was generated during setup by the build assistant and passed to Vercel through its API. Rotate it (see above) once you've taken over the project.
 6. Vercel's Hobby plan is for non-commercial use. Move to Pro before charging anyone.

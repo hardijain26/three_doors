@@ -48,7 +48,9 @@ export async function POST(req: Request) {
       sb.from("profiles").select("search, first_name, last_role, last_company, owned, results, background").eq("id", user.id).single(),
     ]);
     if (!sources?.length) throw new AIError("bad_request", 400);
-    const { data: runId, error: runErr } = await sb.rpc("start_search_run", { p_total: sources.length });
+    const { data: runId, error: runErr } = isCron
+      ? await sb.rpc("start_scheduled_search_run", { p_user_id: user.id, p_total: sources.length })
+      : await sb.rpc("start_search_run", { p_total: sources.length });
     if (runErr) throw runErr;
     if (!runId) return NextResponse.json({ error: "too_soon", message: "Searches need 6 hours between them." }, { status: 429 });
     const run = { id: runId as string };
