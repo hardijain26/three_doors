@@ -135,18 +135,18 @@ function Connected({ p, c, hasLocal, onChange, reload }: { p: Prov; c: Conn; has
   const missing = c.storage === "browser_only" && hasLocal === false;
   
   const renderModelSection = () => {
-    if (models) {
+    if (!models) {
       return (
-        <select value={c.default_model ?? ""} onChange={async (e) => { await api.post("/api/ai/update", { provider: c.provider, model: e.target.value }); reload(); }}>
-          {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-        </select>
+        <span>
+          {c.default_model ?? "none"} 
+          <button className="link" onClick={loadModels}>Change</button>
+        </span>
       );
     }
     return (
-      <span>
-        {c.default_model ?? "none"} 
-        <button className="link" onClick={loadModels}>Change</button>
-      </span>
+      <select value={c.default_model ?? ""} onChange={async (e) => { await api.post("/api/ai/update", { provider: c.provider, model: e.target.value }); reload(); }}>
+        {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+      </select>
     );
   };
 
@@ -172,7 +172,16 @@ function AboutUser({ profile, onSave, savedStatus }: { profile: any; onSave: any
     <div className="card stack">
       <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0 }}>About you</h2><span className="meta">{savedStatus}</span></div>
       <p className="hint">Your AI drafts are written from these saved facts. Keep the real numbers.</p>
-      {FIELDS.map(([k, l, ph]) => <label key={k} className="f">{l}{k === "results" ? <textarea rows={3} defaultValue={profile[k] ?? ""} placeholder={ph} onBlur={(e) => onSave({ [k]: e.target.value })} /> : <input defaultValue={profile[k] ?? ""} placeholder={ph} onBlur={(e) => onSave({ [k]: e.target.value })} />}</label>)}
+      {FIELDS.map(([k, l, ph]) => (
+        <label key={k} className="f">
+          {l}
+          {k === "results" ? (
+            <textarea rows={3} defaultValue={profile[k] ?? ""} placeholder={ph} onBlur={(e) => onSave({ [k]: e.target.value })} />
+          ) : (
+            <input defaultValue={profile[k] ?? ""} placeholder={ph} onBlur={(e) => onSave({ [k]: e.target.value })} />
+          )}
+        </label>
+      ))}
     </div>
   );
 }
@@ -181,20 +190,52 @@ function SearchSettings({ profile, onSave }: { profile: any; onSave: any }) {
   const [v, setV] = useState<any>({ roles: [], countries: [], cities: [], skip: [], remote: {}, ...profile.search });
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const commit = (next: any) => { setV(next); onSave({ search: next }); };
-  const add = (k: string) => { const vals = (drafts[k] || "").split(/[,;\n]/).map((x) => x.trim()).filter(Boolean); if (!vals.length) return; const list = [...(v[k] || [])]; vals.forEach((x) => { if (!list.some((y: string) => y.toLowerCase() === x.toLowerCase())) list.push(x); }); setDrafts({ ...drafts, [k]: "" }); commit({ ...v, [k]: list }); };
+  const add = (k: string) => { 
+    const vals = (drafts[k] || "").split(/[,;\n]/).map((x) => x.trim()).filter(Boolean); 
+    if (!vals.length) return; 
+    const list = [...(v[k] || [])]; 
+    vals.forEach((x) => { if (!list.some((y: string) => y.toLowerCase() === x.toLowerCase())) list.push(x); }); 
+    setDrafts({ ...drafts, [k]: "" }); 
+    commit({ ...v, [k]: list }); 
+  };
+
+  const renderListItems = (k: string) => {
+    const list = v[k] || [];
+    if (!list.length) return <span className="hint">None yet</span>;
+    return list.map((x: string, i: number) => (
+      <span key={x} className="chip mute">
+        {x}
+        <button className="link" style={{ minHeight: 0, textDecoration: "none" }} onClick={() => commit({ ...v, [k]: v[k].filter((_: string, j: number) => j !== i) })}>×</button>
+      </span>
+    ));
+  };
+
   return (
     <div className="card stack">
       <h2>Job search</h2>
       <p className="hint">Used by Find jobs on the Openings tab and by the "match my profile" filter.</p>
-      <div className="grid">{LISTS.map(([k, l, ph]) => (
-        <div key={k} className="stack" style={{ gap: 6 }}>
-          <span className="f">{l}</span>
-          <div className="row" style={{ gap: 6 }}>{(v[k] || []).length ? (v[k] as string[]).map((x, i) => <span key={x} className="chip mute">{x}<button className="link" style={{ minHeight: 0, textDecoration: "none" }} onClick={() => commit({ ...v, [k]: v[k].filter((_: string, j: number) => j !== i) })}>×</button></span>) : <span className="hint">None yet</span>}</div>
-          <div className="row" style={{ flexWrap: "nowrap" }}><input value={drafts[k] || ""} placeholder={ph} onChange={(e) => setDrafts({ ...drafts, [k]: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(k); } }} /><button onClick={() => add(k)}>Add</button></div>
-        </div>))}</div>
-      <div className="row">{[["europe", "Remote within Europe"], ["worldwide", "Remote, anywhere"], ["india", "Remote from India"]].map(([k, l]) => (
-        <label key={k} className="row" style={{ gap: 8 }}><input type="checkbox" style={{ width: 18, minHeight: 18 }} checked={!!v.remote?.[k]} onChange={(e) => commit({ ...v, remote: { ...(v.remote || {}), [k]: e.target.checked } })} />{l}</label>))}</div>
-      <NearMe near={v.near || {}} roles={v.roles || []} onSave={(near) => commit({ ...v, near })} />
+      <div className="grid">
+        {LISTS.map(([k, l, ph]) => (
+          <div key={k} className="stack" style={{ gap: 6 }}>
+            <span className="f">{l}</span>
+            <div className="row" style={{ gap: 6 }}>{renderListItems(k)}</div>
+            <div className="row" style={{ flexWrap: "nowrap" }}>
+              <input value={drafts[k] || ""} placeholder={ph} onChange={(e) => setDrafts({ ...drafts, [k]: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(k); } }} />
+              <button onClick={() => add(k)}>Add</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="row">
+        {[["europe", "Remote within Europe"], ["worldwide", "Remote, anywhere"], ["india", "Remote from India"]].map(([k, l]) => (
+          <label key={k} className="row" style={{ gap: 8 }}>
+            <input type="checkbox" style={{ width: 18, minHeight: 18 }} checked={!!v.remote?.[k]} onChange={(e) => commit({ ...v, remote: { ...(v.remote || {}), [k]: e.target.checked } })} />{l}
+          </label>
+        ))}
+      </div>
+      <NearMe near={v.near || {}} roles={v.// roles array passed correctly
+        v.roles || [] 
+      } onSave={(near) => commit({ ...v, near })} />
       <AutomaticSearches value={v.schedule} onSave={(schedule) => commit({ ...v, schedule })} />
     </div>
   );
