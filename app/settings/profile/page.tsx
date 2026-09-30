@@ -46,7 +46,6 @@ export default function Profile() {
   return (
     <div className="stack" style={{ maxWidth: 720 }}>
       <div className="page-head"><div><h1>Profile &amp; settings</h1><p>Manage your identity, AI connections, and data privacy.</p></div></div>
-      
       <AboutUser profile={p} onSave={save} savedStatus={saved} />
       <AIConnections />
       <SearchSettings profile={p} onSave={save} />
@@ -56,7 +55,6 @@ export default function Profile() {
   );
 }
 
-/** SUB-COMPONENT: AI Connections (Moved from AI Settings Page) */
 function AIConnections() {
   const [provs, setProvs] = useState<Prov[]>([]); const [conns, setConns] = useState<Conn[]>([]);
   const [open, setOpen] = useState<string | null>(null); const [err, setErr] = useState("");
@@ -135,12 +133,30 @@ function Connected({ p, c, hasLocal, onChange, reload }: { p: Prov; c: Conn; has
     catch (e) { setMsg((e as Error).message); }
   }
   const missing = c.storage === "browser_only" && hasLocal === false;
+  
+  // FIXED: Moved complex logic out of the JSX to prevent build crash
+  const renderModelSection = () => {
+    if (models) {
+      return (
+        <select value={c.default_model ?? ""} onChange={async (e) => { await api.post("/api/ai/update", { provider: c.provider, model: e.target.value }); reload(); }}>
+          {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+        </select>
+      );
+    }
+    return (
+      <span>
+        {c.default_model ?? "none"} 
+        <button className="link" onClick={loadModels}>Change</button>
+      </span>
+    );
+  };
+
   return (
     <div className="card stack" style={{ border: "1px solid var(--line)", padding: 12, borderRadius: 8 }}>
       <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0, fontSize: "small" }}>{p.displayName}</h2>{c.is_active ? <span className="chip ok"><Icon name="check" />In use</span> : <button onClick={async () => { await api.post("/api/ai/update", { provider: c.provider, active: true }); reload(); }}>Use this one</button>}</div>
       <dl className="kv" style={{ fontSize: "small" }}>
         <dt>Status</dt><dd>{missing ? <span className="due">Key missing in browser</span> : c.status === "connected" ? "Connected" : "Key rejected"}</dd>
-        <dt>Model</dt><dd>{models ? <select value={c.default_model ?? ""} onChange={async (e) => { await api.post("/api/ai/update", { provider: c.provider, model: e.target.value }); reload(); }}>{models.map((m) => <option key={m.id} value={m.id}>{m.label}</option></select> : <span>{c.default_model ?? "none"} <button className="link" onClick={loadModels}>Change</button></span>}</dd>
+        <dt>Model</dt><dd>{renderModelSection()}</dd>
       </dl>
       {msg && <div className="msg err" style={{ fontSize: "small" }}>{msg}</div>}
       <div className="row" style={{ gap: 8 }}>
@@ -192,7 +208,7 @@ function NearMe({ near, roles, onSave }: { near: { area?: string; km?: number };
       <h3>Near me</h3>
       <div className="grid">
         <label className="f">Your area<input value={area} placeholder="e.g. Koramangala, Bengaluru" onChange={(e) => setArea(e.target.value)} onBlur={() => { if (area.trim() !== a) onSave({ area: area.trim().slice(0, 120), km }); }} /></label>
-        <label className="f">Distance<select value={km} onChange={(e) => onSave({ area: area.trim().slice(0, 120), km: +e.target.value })}>{KM.map(([n, l]) => <option key={n} value={n}>{l}</option>)}</select></label>
+        <label className="f">Distance<select value={km} onChange={(e) => onSave({ area: area.trim().slice(0, 120), km: +e.target.value })}>{KM.map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
       </div>
       {!a ? <p className="hint">Add your area to get map and job search links for companies near you.</p> : (
         <div className="stack" style={{ gap: 4 }}>
@@ -219,8 +235,8 @@ function AutomaticSearches({ value, onSave }: { value?: Partial<SearchSchedule>;
     <div className="stack" style={{ gap: 8, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
       <h3>Automatic searches</h3>
       <p className="hint">Run Find jobs automatically using your saved search profile and enabled sources.</p>
-      <label className="f">How often<select value={s.freq} onChange={(e) => save({ freq: e.target.value })}>{SEARCH_FREQ.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select></label>
-      {s.freq === "weekly" && <label className="f">Day<select value={s.day} onChange={(e) => save({ day: e.target.value })}>{SEARCH_DAYS.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select></label>}
+      <label className="f">How often<select value={s.freq} onChange={(e) => save({ freq: e.target.value })}>{SEARCH_FREQ.map(([v, label]) => <option key={v} value={v}>{label}</option></select></label>
+      {s.freq === "weekly" && <label className="f">Day<select value={s.day} onChange={(e) => save({ day: e.target.value })}>{SEARCH_DAYS.map(([v, label]) => <option key={v} value={v}>{label}</option></select></label>}
       {(s.freq === "weekly" || s.freq === "daily") && <label className="f">Time (India)<input type="time" value={s.time} onChange={(e) => save({ time: e.target.value })} /></label>}
     </div>
   );
@@ -229,7 +245,7 @@ function AutomaticSearches({ value, onSave }: { value?: Partial<SearchSchedule>;
 function WellbeingSettings({ profile, onSave }: { profile: any; onSave: any }) {
   const w = wbCfg(profile.wellbeing), mins = useScreenMinutes();
   const sel = (k: "session" | "brk" | "daily", label: string) => (
-    <label className="f">{label}<select value={w[k]} onChange={(e) => onSave({ wellbeing: { ...w, [k]: +e.target.value } })}>{WB_OPTS[k].map(([n, l]) => <option key={n} value={n}>{l}</option>)}</select></label>
+    <label className="f">{label}<select value={w[k]} onChange={(e) => onSave({ wellbeing: { ...w, [k]: +e.target.value } })}>{WB_OPTS[k].map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
   );
   return (
     <div className="card stack">
@@ -247,7 +263,7 @@ function DataControls({ profile, onSave, router }: { profile: any; onSave: any; 
       <h2>Your data</h2>
       <div className="row">
         <a className="btn" href="/api/account/export"><Icon name="download" />Download my available saved data (JSON)</a>
-        {del ? <button className="danger" onClick={async () => { const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); if (!r.ok) { alert("We couldn't delete your saved data. Nothing was deleted. Please try again."); return; } await wipeBrowserVault(); router.push("/"); }}>Yes, delete my saved data</button>
+        {del ? <button className="danger" onClick={async () => { const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); if (!r.ok) { alert("We couldn't delete your saved data. Please try again."); return; } await wipeBrowserVault(); router.push("/"); }}>Yes, delete my saved data</button>
           : <button className="danger" onClick={() => setDel(true)}>Delete your saved data and AI keys</button>}
       </div>
       <div className="card stack" style={{ marginTop: 12 }}>
