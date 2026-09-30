@@ -6,24 +6,107 @@ import { supabaseBrowser } from "@/lib/supabase/client.ts";
 import { wipeBrowserVault } from "@/lib/client/browser-vault.ts";
 import { WB_OPTS, setWbConfig, useScreenMinutes, wbCfg } from "@/lib/client/wellbeing.ts";
 
-const FIELDS: [string, string, string][] = [
-  ["first_name", "First name (how you sign messages)", "Hardi"], ["last_role", "Your last job title", "Product Manager"], ["last_company", "Last company", "PayU"],
-  ["owned", "What you owned there", "web checkout, payment links and the SDK"], ["results", "Your best results, with their numbers", "Filtering bot traffic lifted checkout conversion 7%"], ["background", "Background before that (optional)", "Chartered Accountant"], ["based_in", "Where you live now", "Bengaluru, India"], ["portfolio", "Portfolio or website (optional)", "yourname.com"], ["linkedin_url", "Your LinkedIn profile URL", "https://www.linkedin.com/in/your-name"],
+const GENERIC_FIELDS: [string, string, string, "input" | "textarea"][] = [
+  ["first_name", "Name", "Your name", "input"],
+  ["last_role", "Current role", "e.g. Researcher, designer, teacher, engineer", "input"],
+  ["last_company", "Current organization", "Where you work now", "input"],
+  ["based_in", "Location", "Where you are based", "input"],
+  ["owned", "Experience", "What have you worked on or delivered?", "textarea"],
+  ["results", "Evidence and results", "What changed because of your work? Include numbers if you have them.", "textarea"],
+  ["background", "Strengths", "What are you strongest at or known for?", "textarea"],
+  ["portfolio", "Portfolio or website", "Optional", "input"],
+  ["linkedin_url", "Professional link", "LinkedIn or another profile", "input"],
 ];
+
+function toGenericCopy(key: string) {
+  const copy: Record<string, string> = {
+    first_name: "The basics about you.",
+    last_role: "Your current role or most recent work.",
+    last_company: "The organization or team you work with.",
+    based_in: "Where you are based or can work from.",
+    owned: "What you have done, built, led, taught, delivered or improved.",
+    results: "Evidence of impact, outcomes or measurable results.",
+    background: "What you are known for, your strengths, or how you contribute.",
+    portfolio: "A portfolio, website, or other professional profile.",
+    linkedin_url: "A professional link people can use to learn more.",
+  };
+  return copy[key] ?? "";
+}
+
 export default function Profile() {
   const sb = supabaseBrowser(); const router = useRouter();
   const [p, setP] = useState<Record<string, any> | null>(null); const [saved, setSaved] = useState(""); const [del, setDel] = useState(false);
   useEffect(() => { sb.auth.getUser().then(async ({ data }: { data: { user: { id: string } | null } }) => { if (!data.user) return; const { data: row } = await sb.from("profiles").select("*").eq("id", data.user.id).single(); setP(row); }); }, []);
   if (!p) return <p className="meta">Loading…</p>;
-  const save = async (patch: Record<string, any>) => { setP({ ...p, ...patch }); await sb.from("profiles").update(patch).eq("id", p.id); setSaved("Saved"); setTimeout(() => setSaved(""), 1200); };
+  const save = async (patch: Record<string, any>) => {
+    const next = { ...p, ...patch };
+    const profileData = {
+      ...(typeof p.profile_data === "object" && p.profile_data ? p.profile_data : {}),
+      first_name: next.first_name ?? undefined,
+      current_role: next.last_role ?? undefined,
+      current_org: next.last_company ?? undefined,
+      location: next.based_in ?? undefined,
+      experience_summary: next.owned ?? undefined,
+      results: next.results ?? undefined,
+      strengths_summary: next.background ?? undefined,
+      portfolio: next.portfolio ?? undefined,
+      linkedin_url: next.linkedin_url ?? undefined,
+      profession_hint: next.profession_hint ?? undefined,
+      profile_ready: !!next.profile_ready,
+    };
+    setP(next);
+    await sb.from("profiles").update({ ...patch, profile_data: profileData }).eq("id", p.id);
+    setSaved("Saved"); setTimeout(() => setSaved(""), 1200);
+  };
   return (
     <div className="stack" style={{ maxWidth: 720 }}>
-      <div className="page-head"><div><h1>Profile &amp; privacy</h1><p>Your saved profile, search settings, wellbeing controls and data controls.</p></div></div>
+      <div className="page-head"><div><h1>Profile &amp; privacy</h1><p>One universal profile model. The wording adapts to your profession, but the underlying structure stays consistent.</p></div></div>
+
       <div className="card stack">
-        <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0 }}>About you</h2><span className="meta">{saved}</span></div>
-        <p className="hint">Your AI drafts are written from these saved facts. Keep the real numbers.</p>
-        {FIELDS.map(([k, l, ph]) => <label key={k} className="f">{l}{k === "results" ? <textarea rows={3} defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} /> : <input defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} />}</label>)}
+        <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0 }}>You</h2><span className="meta">{saved}</span></div>
+        <p className="hint">Keep the basics accurate and make the rest of the profile evidence-based.</p>
+        <div className="grid">
+          {GENERIC_FIELDS.filter(([key]) => ["first_name", "last_role", "last_company", "based_in", "portfolio", "linkedin_url"].includes(key)).map(([k, l, ph, type]) => (
+            <label key={k} className="f" style={{ gridColumn: type === "textarea" ? "1 / -1" : undefined }}>{l}<span className="hint" style={{ display: "block", marginBottom: 4 }}>{toGenericCopy(k)}</span>
+              {type === "textarea" ? <textarea rows={3} defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} /> : <input defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} />}
+            </label>
+          ))}
+        </div>
       </div>
+
+      <div className="card stack">
+        <h2>Experience</h2>
+        <p className="hint">What have you done, built, led, taught, improved or delivered?</p>
+        {GENERIC_FIELDS.filter(([key]) => ["owned", "results"].includes(key)).map(([k, l, ph, type]) => (
+          <label key={k} className="f" style={{ display: "grid" }}>{l}<span className="hint" style={{ display: "block", marginBottom: 4 }}>{toGenericCopy(k)}</span>
+            {type === "textarea" ? <textarea rows={4} defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} /> : <input defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} />}
+          </label>
+        ))}
+      </div>
+
+      <div className="card stack">
+        <h2>Strengths</h2>
+        <p className="hint">Describe what you do well, with examples or evidence where possible.</p>
+        {GENERIC_FIELDS.filter(([key]) => ["background"].includes(key)).map(([k, l, ph, type]) => (
+          <label key={k} className="f" style={{ display: "grid" }}>{l}<span className="hint" style={{ display: "block", marginBottom: 4 }}>{toGenericCopy(k)}</span>
+            {type === "textarea" ? <textarea rows={4} defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} /> : <input defaultValue={p[k] ?? ""} placeholder={ph} onBlur={(e) => save({ [k]: e.target.value })} />}
+          </label>
+        ))}
+      </div>
+
+      <div className="card stack">
+        <h2>Goals, preferences and constraints</h2>
+        <p className="hint">The system keeps these separate so opportunity matching can weigh must-haves differently from nice-to-haves.</p>
+        <div className="stack" style={{ gap: 8 }}>
+          <div className="hint">This version keeps the existing search settings and profile fields, but the copy is now profession-neutral and the decision logic can treat goals, preferences and constraints separately.</div>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <span className="chip">Goals</span>
+            <span className="chip">Preferences</span>
+            <span className="chip">Constraints</span>
+          </div>
+        </div>
+      </div>
+
       <SearchSettings value={p.search || {}} onSave={(search) => save({ search })} />
       <Breaks value={p.wellbeing} onSave={(wellbeing) => { save({ wellbeing }); setWbConfig(wellbeing); }} />
       <div className="card stack">

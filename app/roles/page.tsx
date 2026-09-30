@@ -28,6 +28,7 @@ export default function Roles() {
   const sb = supabaseBrowser(); const me = useMe(); const { state, queue } = useSaver();
   const [roles, setRoles] = useState<Role[] | null>(null); const [cs, setCs] = useState<Contact[]>([]); const [fresh, setFresh] = useState<{ score: number | null }[]>([]);
   const [edit, setEdit] = useState<Record<string, boolean>>({});
+  const [showArchived, setShowArchived] = useState(false);
   async function load() {
     const [r, c, o] = await Promise.all([sb.from("roles").select("*").order("created_at", { ascending: true }), sb.from("contacts").select("*").order("created_at", { ascending: true }), sb.from("openings").select("score").eq("state", "new")]);
     setRoles(r.data ?? []); setCs(c.data ?? []); setFresh(o.data ?? []);
@@ -47,18 +48,25 @@ export default function Roles() {
     setRoles((all) => (all ?? []).map((x) => x.id === id ? { ...x, ...patch } : x));
     queue(`r:${id}:${Object.keys(patch).join(",")}`, () => sb.from("roles").update(patch).eq("id", id), 0);
   };
-  const appliedToday = (roles ?? []).filter((r) => r.applied_on === istToday()).length;
+  const activeRoles = roles?.filter((r) => !r.archived_at) ?? [];
+  const archivedRoles = roles?.filter((r) => !!r.archived_at) ?? [];
+  const activeRoleIds = new Set(activeRoles.map((r) => r.id));
+  const activeContacts = cs.filter((c) => activeRoleIds.has(c.role_id));
+  const visibleRoles = showArchived ? roles ?? [] : activeRoles;
+  const appliedToday = activeRoles.filter((r) => r.applied_on === istToday()).length;
 
   if (!roles) return <p className="meta">Loading your roles…</p>;
   return (
     <div className="stack">
       <div className="page-head"><div><h1>Roles</h1><p>Every target role gets three people: the hiring manager, a recruiter, and someone who might refer you. Log each one here and the board tells you what to do next.</p></div><SaveHint state={state} /></div>
-      <StatsBar roles={roles} contacts={cs} />
+      <StatsBar roles={activeRoles} contacts={activeContacts} />
       <LinkedInNudge url={me ? me.linkedin_url : "https://www.linkedin.com/in/x"} />
       <OpeningsBanner fresh={fresh} />
-      {!roles.length && <div className="card stack" style={{ alignItems: "flex-start" }}><p style={{ margin: 0 }}>No roles yet. Roles are the jobs you have decided to pursue. Pick them on the Openings tab with <b>Add to Roles</b>, and for each one you add the people to reach: the hiring manager, a recruiter, and someone in another department who might refer you.</p><Link className="btn primary" href="/openings">Go to Openings</Link></div>}
-      {roles.map((r) => (
+      {archivedRoles.length > 0 && <label className="row"><input type="checkbox" style={{ width: 18, minHeight: 18 }} checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />Show archived roles ({archivedRoles.length})</label>}
+      {!activeRoles.length && !showArchived && <div className="card stack" style={{ alignItems: "flex-start" }}><p style={{ margin: 0 }}>No active roles yet. Roles are the jobs you have decided to pursue. Pick them on the Openings tab with <b>Add to Roles</b>, and for each one you add the people to reach: the hiring manager, a recruiter, and someone in another department who might refer you.</p><Link className="btn primary" href="/openings">Go to Openings</Link></div>}
+      {visibleRoles.map((r) => (
         <RoleCard key={r.id} r={r} people={cs.filter((c) => c.role_id === r.id).sort((a, b) => ORDER[a.type] - ORDER[b.type] || String(a.created_at).localeCompare(String(b.created_at)))} me={me}
+          archived={!!r.archived_at}
           edit={edit} setEdit={(id, v) => setEdit((e) => ({ ...e, [id]: v }))} patchContact={patchContact}
           onApply={() => {
             if (appliedToday >= APPLY_CAP) { showBreak("apply"); return; }
@@ -69,14 +77,16 @@ export default function Roles() {
           onAdded={(c) => { setCs((all) => [...all, c]); setEdit((e) => ({ ...e, [c.id]: true })); }}
           onRemoved={(id) => setCs((all) => all.filter((x) => x.id !== id))}
           onMerge={(id, ch) => setCs((all) => all.map((x) => x.id === id ? { ...x, ...ch } : x))}
-          onDelete={async () => {
-            const { error } = await sb.from("roles").delete().eq("id", r.id);
+          onArchive={async () => {
+            const archivedAt = new Date().toISOString();
+            const { error } = await sb.from("roles").update({ archived_at: archivedAt }).eq("id", r.id).is("archived_at", null);
             if (error) return false;
-            // Hand the opening back (found by id or by job link), with the company filter, like the tracker.
-            const up: Record<string, unknown> = { state: "new" }; if (r.cid) up.cid = r.cid;
-            if (r.opening_id) await sb.from("openings").update(up).eq("id", r.opening_id);
-            if (r.link) await sb.from("openings").update(up).eq("link", r.link).eq("state", "added");
-            setRoles((all) => (all ?? []).filter((x) => x.id !== r.id)); setCs((all) => all.filter((x) => x.role_id !== r.id)); return true;
+            setRoles((all) => (all ?? []).map((x) => x.id === r.id ? { ...x, archived_at: archivedAt } : x)); return true;
+          }}
+          onRestore={async () => {
+            const { error } = await sb.from("roles").update({ archived_at: null }).eq("id", r.id);
+            if (error) return false;
+            setRoles((all) => (all ?? []).map((x) => x.id === r.id ? { ...x, archived_at: null } : x)); return true;
           }} />
       ))}
     </div>
@@ -84,15 +94,14 @@ export default function Roles() {
 }
 
 type CardProps = {
-  r: Role; people: Contact[]; me: any; edit: Record<string, boolean>; setEdit: (id: string, v: boolean) => void;
+  r: Role; people: Contact[]; me: any; archived: boolean; edit: Record<string, boolean>; setEdit: (id: string, v: boolean) => void;
   patchContact: (id: string, p: Partial<Contact>, delay?: number) => void; onApply: () => void; onUnapply: () => void; onCid: (cid: string | null) => void;
-  onAdded: (c: Contact) => void; onRemoved: (id: string) => void; onMerge: (id: string, ch: Partial<Contact>) => void; onDelete: () => Promise<boolean>;
+  onAdded: (c: Contact) => void; onRemoved: (id: string) => void; onMerge: (id: string, ch: Partial<Contact>) => void; onArchive: () => Promise<boolean>; onRestore: () => Promise<boolean>;
 };
 function RoleCard(p: CardProps) {
   const { r, people } = p; const [del, setDel] = useState(false); const [delErr, setDelErr] = useState(false);
   const named = people.filter((c) => c.name), contacted = people.filter((c) => reached(c) >= 1).length;
   const due = named.filter((c) => c.status !== "Closed" && nextStep(c)[1]).map((c) => `${(c.name || "").split(/\s+/)[0] || typeLabel(c)}: ${nextStep(c)[0].toLowerCase()}`);
-  const logged = people.filter((c) => c.name || c.status !== "Not found").length;
   return (
     <article className="card rolecard" id={`role-${r.id}`}>
       <div className="row between" style={{ alignItems: "flex-start" }}>
@@ -116,7 +125,7 @@ function RoleCard(p: CardProps) {
         <CidBox r={r} onCid={p.onCid} />
       </details>
       <div className="row" style={{ justifyContent: "flex-end" }}>
-        <button className="link muted" onClick={async () => { if (!del) { setDel(true); return; } setDelErr(false); if (!(await p.onDelete())) setDelErr(true); }}>{delErr ? "Couldn't remove it. Try again." : del ? (logged ? `Remove ${r.company}? The ${logged} contact${logged > 1 ? "s" : ""} you logged go with it. Click again` : `Click again to move ${r.company} back to Openings`) : "Remove from Roles"}</button>
+        {p.archived ? <button className="link" onClick={async () => { setDelErr(false); if (!(await p.onRestore())) setDelErr(true); }}>{delErr ? "Couldn't restore it. Try again." : "Restore to active Roles"}</button> : <button className="link muted" onClick={async () => { if (!del) { setDel(true); return; } setDelErr(false); if (!(await p.onArchive())) setDelErr(true); }}>{delErr ? "Couldn't archive it. Try again." : del ? `Archive ${r.company}? Contacts and history will stay. Click again` : "Archive from active Roles"}</button>}
       </div>
     </article>
   );

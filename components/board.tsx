@@ -28,9 +28,10 @@ export function useBoard(tick = 0) {
   const [d, setD] = useState<{ roles: { applied_on: string | null }[]; contacts: Lite[]; fresh: { score: number | null }[]; linkedin: string | null } | null>(null);
   useEffect(() => {
     const sb = supabaseBrowser();
-    Promise.all([sb.from("roles").select("applied_on"), sb.from("contacts").select("status,status_history,type"), sb.from("openings").select("score").eq("state", "new"), sb.auth.getUser()]).then(async ([r, c, o, u]: any[]) => {
+    Promise.all([sb.from("roles").select("id,applied_on").is("archived_at", null), sb.from("contacts").select("role_id,status,status_history,type"), sb.from("openings").select("score").eq("state", "new"), sb.auth.getUser()]).then(async ([r, c, o, u]: any[]) => {
       const p = u.data.user ? (await sb.from("profiles").select("linkedin_url").eq("id", u.data.user.id).single()).data : null;
-      setD({ roles: r.data ?? [], contacts: c.data ?? [], fresh: o.data ?? [], linkedin: p?.linkedin_url ?? null });
+      const roleIds = new Set((r.data ?? []).map((x: { id: string }) => x.id));
+      setD({ roles: r.data ?? [], contacts: (c.data ?? []).filter((x: { role_id: string }) => roleIds.has(x.role_id)), fresh: o.data ?? [], linkedin: p?.linkedin_url ?? null });
     });
   }, [tick]);
   return d;

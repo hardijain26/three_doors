@@ -15,7 +15,8 @@ export default function People() {
   useEffect(() => { Promise.all([sb.from("contacts").select("*"), sb.from("roles").select("*")]).then(([c, r]: any[]) => { setCs(c.data ?? []); setRoles(r.data ?? []); }); }, []);
   const byId = useMemo(() => Object.fromEntries(roles.map((r) => [r.id, r])), [roles]);
   const isDue = (c: Contact) => c.status !== "Closed" && nextStep(c)[1];
-  const all = cs ?? [];
+  const activeRoleIds = new Set(roles.filter((r) => !r.archived_at).map((r) => r.id));
+  const all = (cs ?? []).filter((c) => activeRoleIds.has(c.role_id));
   const rows = useMemo(() => all.filter((c) => {
     const r = byId[c.role_id];
     if (type && c.type !== type) return false; if (st === "due" && !isDue(c)) return false; if (st && st !== "due" && c.status !== st) return false;

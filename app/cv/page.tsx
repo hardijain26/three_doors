@@ -19,7 +19,7 @@ export default function CV() {
   const [busy, setBusy] = useState(""); const [msg, setMsg] = useState<{ where: string; t: string; err?: boolean } | null>(null);
 
   useEffect(() => {
-    Promise.all([sb.from("cv_docs").select("*").maybeSingle(), sb.from("career").select("*").maybeSingle(), sb.from("roles").select("id, company, title, link"), sb.from("openings").select("id, company, title, link").eq("state", "new")]).then(([d, c, r, o]: any[]) => {
+    Promise.all([sb.from("cv_docs").select("*").maybeSingle(), sb.from("career").select("*").maybeSingle(), sb.from("roles").select("id, company, title, link").is("archived_at", null), sb.from("openings").select("id, company, title, link").eq("state", "new")]).then(([d, c, r, o]: any[]) => {
       const dd: Doc = d.data ?? { prompt_fields: null, prompt: null, source: "", master: "", master_diff: [], template: "classic" };
       setDoc(dd); setSource(dd.source ?? ""); setCareer(c.data);
       setJobs([...(r.data ?? []).map((x: any) => ({ key: `r-${x.id}`, company: x.company, title: x.title, link: x.link, group: "Roles" })), ...(o.data ?? []).map((x: any) => ({ key: `o-${x.id}`, company: x.company, title: x.title, link: x.link, group: "Openings" }))]);

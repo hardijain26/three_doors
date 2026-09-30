@@ -16,7 +16,7 @@ const wkStart = (s: string) => { const d = new Date(s + "T00:00:00Z"); d.setUTCD
 export default function Analytics() {
   const sb = supabaseBrowser();
   const [rows, setRows] = useState<Row[] | null>(null);
-  useEffect(() => { Promise.all([sb.from("contacts").select("*"), sb.from("roles").select("*")]).then(([c, r]) => { const rm = Object.fromEntries((r.data ?? []).map((x: Role) => [x.id, x])); setRows((c.data ?? []).map((x: Contact) => ({ c: x, r: rm[x.role_id] }))); }); }, []);
+  useEffect(() => { Promise.all([sb.from("contacts").select("*"), sb.from("roles").select("*").is("archived_at", null)]).then(([c, r]) => { const rm = Object.fromEntries((r.data ?? []).map((x: Role) => [x.id, x])); setRows((c.data ?? []).filter((x: Contact) => rm[x.role_id]).map((x: Contact) => ({ c: x, r: rm[x.role_id] }))); }); }, []);
   const A = useMemo(() => agg(rows ?? []), [rows]);
   if (!rows) return <p className="meta">Loading…</p>;
   const ar = pct(A.acc, A.sent);

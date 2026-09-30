@@ -68,11 +68,9 @@ export default function Openings() {
     if (!error) setPaste(""); load();
   }
   async function toRoles(o: Opening) {
-    const fit = (o.score ?? 0) >= 70 ? "Strong" : (o.score ?? 0) >= 50 ? "Good" : "Stretch", link = o.link?.startsWith("https://") ? o.link : null;
-    // Like the tracker: never a second role for the same job link, and the company filter comes back with it.
-    const dup = link ? (await sb.from("roles").select("id").eq("link", link).limit(1)).data?.length : 0;
-    const { error } = dup ? { error: null } : await sb.from("roles").insert({ company: o.company, title: o.title, location: o.location, link, fit, angle: [o.why, o.flag].filter(Boolean).join(" "), opening_id: o.id, cid: o.cid ?? null });
-    if (!error) { await sb.from("openings").update({ state: "added" }).eq("id", o.id); sb.rpc("track_event", { p_event: "role_created", p_props: {} }).then(() => {}, () => {}); load(); }
+    const { error } = await sb.rpc("confirm_opening_as_role", { p_opening_id: o.id });
+    if (error) { setRunMsg({ t: "Couldn't add this opening to Roles. Try again.", err: true }); return; }
+    sb.rpc("track_event", { p_event: "role_created", p_props: {} }).then(() => {}, () => {}); load();
   }
   const setState = async (o: Opening, state: string) => { await sb.from("openings").update({ state }).eq("id", o.id); load(); };
   async function addManual(e: React.FormEvent) {
