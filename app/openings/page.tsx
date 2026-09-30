@@ -96,7 +96,7 @@ export default function Openings() {
           <span className={runMsg?.err ? "due" : "meta"} role="status">{statusLine}</span>
         </div>
         <p className="hint">Each search checks the 30 sources that have gone longest without a check (favourites first), so {enabled.length} source{enabled.length === 1 ? "" : "s"} take{enabled.length === 1 ? "s" : ""} about {Math.max(1, Math.ceil(enabled.length / 30))} search{Math.ceil(enabled.length / 30) > 1 ? "es" : ""} to cover. Searches run only when you press the button, at least {GAP_H} hours apart, and use your own AI key. Boards that load jobs with JavaScript may show nothing; add their filtered search page, or add the job yourself below.</p>
-        <p className="hint">Looking for: {(s.roles || []).join(", ") || "any PM title"} · {[...(s.countries || []), ...(s.cities || [])].join(", ") || "anywhere"}{s.skip?.length ? ` · skipping ${s.skip.join(", ")}` : ""}. <Link href="/settings/profile">Change in Profile</Link></p>
+        <p className="hint">Looking for: {(s.roles || []).join(", ") || "any PM title"} · {[...(s.countries || []), ...(s.cities || [])].join(", ") || "anywhere"}{s.skip?.length ? ` · skipping ${s.skip.join(", ")}` : ""}. <Link href="/settings">Change in Settings</Link></p>
         <details><summary>Sources: {enabled.length} on, {src.length - enabled.length} off, {src.filter((x) => x.fav).length} favourite · {src.length} of {MAX_SRC}</summary>
           <p className="hint">Star your favourite boards; favourites are read first in every search.</p>
           {src.length > 8 && <input placeholder="Search your sources" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search your sources" />}
@@ -119,7 +119,7 @@ export default function Openings() {
 
       <p className="meta" style={{ maxWidth: "70ch" }}>Your AI reads your sources, drops companies in the industries you skip, and scores each PM opening on location, product type and blockers. Scores of 70 and up are marked as top matches. Click <b>Add to Roles</b> and the opening moves to the Roles tab with its fit label and angle filled in.</p>
       <div className="row">
-        <label className="row" style={{ gap: 8 }}><input type="checkbox" style={{ width: 18, minHeight: 18 }} checked={onlyMatch} onChange={(e) => setOnlyMatch(e.target.checked)} />Only openings that match my <Link href="/settings/profile">profile</Link></label>
+        <label className="row" style={{ gap: 8 }}><input type="checkbox" style={{ width: 18, minHeight: 18 }} checked={onlyMatch} onChange={(e) => setOnlyMatch(e.target.checked)} />Only openings that match my <Link href="/about">profile</Link></label>
         <label className="row" style={{ gap: 8 }}><input type="checkbox" style={{ width: 18, minHeight: 18 }} checked={showHidden} onChange={(e) => setShowHidden(e.target.checked)} />Show hidden openings</label>
         {offProfile > 0 && <span className="meta">{offProfile} outside your profile not shown</span>}
       </div>

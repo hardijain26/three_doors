@@ -40,7 +40,7 @@ export function useBoard(tick = 0) {
 export const liOk = (u?: string | null) => /linkedin\.com\/in\/[^/?#\s]+/i.test(u || "");
 export function LinkedInNudge({ url }: { url: string | null | undefined }) {
   if (liOk(url)) return null;
-  return <Link className="banner warn" href="/settings/profile">Add your LinkedIn profile URL in Profile. Recruiters open it before anything else →</Link>;
+  return <Link className="banner warn" href="/about">Add your LinkedIn profile URL in About. Recruiters open it before anything else →</Link>;
 }
 export function OpeningsBanner({ fresh }: { fresh: { score: number | null }[] }) {
   if (!fresh.length) return null;

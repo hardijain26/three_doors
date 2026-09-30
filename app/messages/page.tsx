@@ -20,7 +20,7 @@ export default function Messages() {
   ];
   return (
     <div className="stack-lg">
-      <div className="page-head"><div><h1>Messages</h1><p>Templates that fill in from your <Link href="/settings/profile">Profile</Link>. Replace anything in braces before sending.</p></div></div>
+      <div className="page-head"><div><h1>Messages</h1><p>Templates that fill in from your <Link href="/about">About</Link>. Replace anything in braces before sending.</p></div></div>
       <div className="grid">{T.map(([t, body, note]) => <Tpl key={t} title={t} body={body} note={note} />)}</div>
       <div className="card stack">
         <h2>Order for each role</h2>

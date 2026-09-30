@@ -38,11 +38,11 @@ export default function Login() {
     if (mode === "in") {
       const { error } = await sb.auth.signInWithPassword({ email, password: pw });
       if (error) setMsg({ t: error.message === "Email not confirmed" ? "Confirm your email first: open the link we sent, then sign in here." : "Email or password is wrong.", err: true });
-      else router.push("/career");
+      else router.push("/about");
     } else {
       const { data, error } = await sb.auth.signUp({ email, password: pw, options: { emailRedirectTo: `${location.origin}/auth/callback` } });
       if (error) setMsg({ t: error.message, err: true });
-      else if (data.session) router.push("/settings/ai");
+      else if (data.session) router.push("/settings");
       else setMsg({ t: "Check your inbox and click the confirmation link. Then come back and sign in." });
     }
     setBusy("");

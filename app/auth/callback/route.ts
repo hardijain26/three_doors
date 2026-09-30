@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   const sb = await supabaseServer();
   const { error } = await sb.auth.exchangeCodeForSession(code);
   if (error) return NextResponse.redirect(new URL("/login?error=oauth", url.origin));
-  // First visit goes to AI settings so the user connects a provider; later visits land on Roles.
+  // First visit goes to settings so the user connects a provider; later visits land on About.
   const { data } = await sb.from("provider_connections").select("provider").limit(1);
-  return NextResponse.redirect(new URL(data && data.length ? "/career" : "/settings/ai", url.origin));
+  return NextResponse.redirect(new URL(data && data.length ? "/about" : "/settings", url.origin));
 }
