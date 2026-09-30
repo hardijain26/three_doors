@@ -7,7 +7,7 @@ export interface Contact {
   status: string; status_history: Record<string, string>; common: { point: string; from: string }[] | null; followup: string | null; updated_at: string; created_at?: string;
   website?: string | null; mutual?: string | null; shared?: string | null; topic?: string | null; msg_coffee?: string | null; msg_ref?: string | null; hook?: string | null; status_on?: string | null;
 }
-export interface Role { id: string; company: string; title: string; location: string | null; link: string | null; fit: string | null; angle: string | null; applied_on: string | null; created_at: string; opening_id?: string | null; cid?: string | null; archived_at?: string | null }
+export interface Role { id: string; company: string; title: string; location: string | null; link: string | null; fit: string | null; angle: string | null; application_started_at?: string | null; applied_on: string | null; created_at: string; opening_id?: string | null; cid?: string | null; archived_at?: string | null }
 
 export const typeLabel = (c: Pick<Contact, "type" | "dept">) => c.type === "hm" ? "Hiring manager" : c.type === "rec" ? "Recruiter" : `${c.dept || "Other"} team`;
 export const today = () => new Date().toISOString().slice(0, 10);

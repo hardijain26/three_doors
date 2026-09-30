@@ -68,9 +68,10 @@ export default function Roles() {
         <RoleCard key={r.id} r={r} people={cs.filter((c) => c.role_id === r.id).sort((a, b) => ORDER[a.type] - ORDER[b.type] || String(a.created_at).localeCompare(String(b.created_at)))} me={me}
           archived={!!r.archived_at}
           edit={edit} setEdit={(id, v) => setEdit((e) => ({ ...e, [id]: v }))} patchContact={patchContact}
+          onStartApplication={() => patchRole(r.id, { application_started_at: istToday() })}
           onApply={() => {
             if (appliedToday >= APPLY_CAP) { showBreak("apply"); return; }
-            patchRole(r.id, { applied_on: istToday() }); if (appliedToday + 1 === APPLY_CAP) showBreak("applydone");
+            patchRole(r.id, { application_started_at: r.application_started_at || istToday(), applied_on: istToday() }); if (appliedToday + 1 === APPLY_CAP) showBreak("applydone");
           }}
           onUnapply={() => patchRole(r.id, { applied_on: null })}
           onCid={(cid) => { for (const x of roles) if (x.company.toLowerCase() === r.company.toLowerCase() && (cid ? !x.cid || x.id === r.id : true)) patchRole(x.id, { cid }); }}
@@ -95,7 +96,7 @@ export default function Roles() {
 
 type CardProps = {
   r: Role; people: Contact[]; me: any; archived: boolean; edit: Record<string, boolean>; setEdit: (id: string, v: boolean) => void;
-  patchContact: (id: string, p: Partial<Contact>, delay?: number) => void; onApply: () => void; onUnapply: () => void; onCid: (cid: string | null) => void;
+  patchContact: (id: string, p: Partial<Contact>, delay?: number) => void; onStartApplication: () => void; onApply: () => void; onUnapply: () => void; onCid: (cid: string | null) => void;
   onAdded: (c: Contact) => void; onRemoved: (id: string) => void; onMerge: (id: string, ch: Partial<Contact>) => void; onArchive: () => Promise<boolean>; onRestore: () => Promise<boolean>;
 };
 function RoleCard(p: CardProps) {
@@ -111,7 +112,10 @@ function RoleCard(p: CardProps) {
           <div className="row rsum"><span className="mono meta">{people.length ? `${contacted} of ${people.length} contacted` : "No one added yet"}</span>{due.length > 0 && <span className="due">{due[0]}{due.length > 1 ? ` (+${due.length - 1} more)` : ""}</span>}</div>
         </div>
         <div className="row">
-          {r.applied_on ? <><span className="chip">Applied {r.applied_on}</span><button className="link" onClick={p.onUnapply}>Undo</button></> : <button onClick={p.onApply}>Mark as applied</button>}
+          {r.applied_on ? <><span className="chip">Applied {r.applied_on}</span><button className="link" onClick={p.onUnapply}>Undo</button></> : <>
+            {r.application_started_at ? <span className="chip">Application started {r.application_started_at}</span> : <button onClick={p.onStartApplication}>Start application</button>}
+            <button onClick={p.onApply}>Mark as applied</button>
+          </>}
           {r.fit && <span className={`chip${r.fit === "Strong" ? " ok" : r.fit === "Stretch" ? " warn" : ""}`}>{r.fit}</span>}
         </div>
       </div>
