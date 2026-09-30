@@ -46,7 +46,7 @@ create table public.roles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   company text not null, title text not null, location text, link text,
-  fit text check (fit in ('Strong','Good','Stretch')), angle text, applied_on date, archived_at timestamptz,
+  fit text check (fit in ('Strong','Good','Stretch')), angle text, application_started_at date, applied_on date, archived_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -249,6 +249,7 @@ alter table public.profiles add column if not exists wellbeing jsonb not null de
 
 -- ============ Decision history (append-only; current fields remain projections) ============
 alter table public.roles add column if not exists archived_at timestamptz;
+alter table public.roles add column if not exists application_started_at date;
 
 create table public.decision_events (
   id uuid primary key default gen_random_uuid(),
@@ -297,6 +298,12 @@ begin
       ))
     );
     return new;
+  end if;
+
+  if old.application_started_at is distinct from new.application_started_at and new.application_started_at is not null then
+    insert into public.decision_events (user_id, role_id, event_type, source_type, source_id, payload)
+    values (new.user_id, new.id, 'APPLICATION_STARTED', 'role', new.id,
+      jsonb_build_object('application_started_at', new.application_started_at));
   end if;
 
   if old.applied_on is distinct from new.applied_on and new.applied_on is not null then
