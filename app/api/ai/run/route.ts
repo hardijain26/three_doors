@@ -22,7 +22,6 @@ export async function POST(req: Request) {
     // --- START RATE LIMIT LOGIC ---
     const admin = supabaseAdmin();
     
-    // 1. Get current rate limit data for this user
     const { data: limitData, error: limitError } = await admin
       .from("ai_rate_limits")
       .select("request_count, window_start")
@@ -43,12 +42,11 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Check if limit is exceeded
     if (count >= REQUEST_LIMIT) {
-      return fail(new Error("too_many_requests"), "ai.run", 429);
+      // FIXED: Removed the 3rd argument (429) to match the function signature
+      return fail(new Error("too_many_requests"), "ai.run");
     }
 
-    // 3. Increment the count in the database
     await admin.from("ai_rate_limits").upsert({
       user_id: user.id,
       request_count: count + 1,
