@@ -5,29 +5,75 @@ export default function Home() {
   return (
     <div className="stack-lg">
       <section className="hero">
-        <span className="eyebrow">Job-search outreach</span>
-        <h1>Every role has three doors. Knock on all of them.</h1>
-        <p className="lead">For each job you want, reach the hiring manager, a recruiter, and someone in another team who can refer you. Three Doors tracks every person, tells you what to do next, and drafts the messages with your own AI.</p>
-        <div className="row"><Link className="btn primary" href="/login">Get started free <Icon name="arrow" /></Link><Link className="btn" href="/privacy">How we handle data</Link></div>
+        <span className="eyebrow">AI-Powered Job Search</span>
+        <h1 style={{ fontSize: "3.5rem", lineHeight: 1.1 }}>Land the interview,<br />not just the application.</h1>
+        <p className="lead" style={{ fontSize: "1.25rem", maxWidth: 600 }}>
+          Stop sending generic messages. Log in with Google, connect your LinkedIn, 
+          and let AI personalize your outreach to hiring managers and recruiters 
+          for every role you target.
+        </p>
+        <div className="row">
+          <Link className="btn primary" href="/login" style={{ padding: "12px 24px", fontSize: "1.1rem" }}>
+            Get started with Google <Icon name="arrow" />
+          </Link>
+          <Link className="btn" href="/privacy">Privacy & Data</Link>
+        </div>
       </section>
 
       <section aria-labelledby="how">
-        <h2 id="how">How it works</h2>
+        <h2 id="how" style={{ textAlign: "center", marginBottom: 40 }}>The Path to the Interview</h2>
         <div className="steps3">
-          <div className="step"><span className="n">1</span><h3>Add the role</h3><p className="meta">Company, title and the job post. One card per job you're serious about.</p></div>
-          <div className="step"><span className="n">2</span><h3>Find the three people</h3><p className="meta">Search LinkedIn from the card, paste their profile, and get the points you have in common.</p></div>
-          <div className="step"><span className="n">3</span><h3>Move each one forward</h3><p className="meta">Connection note, follow-up, coffee chat, referral. The next step turns red when it's due.</p></div>
+          <div className="step">
+            <span className="n">1</span>
+            <h3>One-Click Setup</h3>
+            <p className="meta">Sign in with Google. Paste your LinkedIn URL, and our AI instantly builds your professional profile.</p>
+          </div>
+          <div className="step">
+            <span className="n">2</span>
+            <h3>Target the Right People</h3>
+            <p className="meta">Don't just apply. Find the hiring manager, a recruiter, and a peer to knock on all three doors.</p>
+          </div>
+          <div className="step">
+            <span className="n">3</span>
+            <h3>Hyper-Personalize</h3>
+            <p className="meta">Generate outreach drafts based on your actual achievements and the company's specific needs.</p>
+          </div>
         </div>
       </section>
 
       <section className="card stack-lg" aria-labelledby="trust">
-        <div><h2 id="trust">Your AI bill stays yours. Your data stays yours.</h2><p className="meta">We only record product events like "a note was drafted", with the model and timing. Never what was written.</p></div>
-        <div className="trust">
-          <div className="item"><span className="ic"><Icon name="wallet" /></span><div><h3>Your own AI key</h3><p className="meta">Connect OpenAI, Claude or Gemini. Usage is billed to your account, not ours.</p></div></div>
-          <div className="item"><span className="ic"><Icon name="lock" /></span><div><h3>You choose where it lives</h3><p className="meta">Encrypted on our server, or only in your browser.</p></div></div>
-          <div className="item"><span className="ic"><Icon name="download" /></span><div><h3>Export or delete anytime</h3><p className="meta">Only you can read your roles, contacts and notes.</p></div></div>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <h2 id="trust">Professional Grade. Privacy First.</h2>
+          <p className="meta">Built for serious job seekers who value their data and their time.</p>
         </div>
-        <div><Link className="btn primary" href="/login">Create your account <Icon name="arrow" /></Link></div>
+        <div className="trust">
+          <div className="item">
+            <span className="ic"><Icon name="wallet" /></span>
+            <div>
+              <h3>Your AI, Your Bill</h3>
+              <p className="meta">Connect OpenAI, Claude, or Gemini. You pay the provider directly; we never take a cut.</p>
+            </div>
+          </div>
+          <div className="item">
+            <span className="ic"><Icon name="lock" /></span>
+            <div>
+              <h3>Vault-Grade Security</h3>
+              <p className="meta">Your keys are encrypted on our server or stored exclusively in your browser. You decide.</p>
+            </div>
+          </div>
+          <div className="item">
+            <span className="ic"><Icon name="download" /></span>
+            <div>
+              <h3>Full Data Ownership</h3>
+              <p className="meta">Export your roles, contacts, and notes in one click. Delete everything instantly if you choose.</p>
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign: "center", marginTop: 40 }}>
+          <Link className="btn primary" href="/login" style={{ padding: "12px 24px" }}>
+            Create your account with Google <Icon name="arrow" />
+          </Link>
+        </div>
       </section>
     </div>
   );
