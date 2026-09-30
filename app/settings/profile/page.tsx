@@ -81,9 +81,10 @@ function AIConnections() {
       <div className="prov">
         {provs.map((p) => {
           const c = conns.find((x) => x.provider === p.id);
-          return c && open !== p.id
-            ? <Connected key={p.id} p={p} c={c} hasLocal={local[p.id]} onChange={() => setOpen(p.id)} reload={load} />
-            : <ConnectCard key={p.id} p={p} open={open === p.id} onOpen={() => setOpen(open === p.id ? null : p.id)} done={() => { setOpen(null); load(); }} replacing={!!c} />;
+          if (c && open !== p.id) {
+            return <Connected key={p.id} p={p} c={c} hasLocal={local[p.id]} onChange={() => setOpen(p.id)} reload={load} />;
+          }
+          return <ConnectCard key={p.id} p={p} open={open === p.id} onOpen={() => setOpen(open === p.id ? null : p.id)} done={() => { setOpen(null); load(); }} replacing={!!c} />;
         })}
       </div>
     </div>
@@ -107,7 +108,7 @@ function ConnectCard({ p, open, onOpen, done, replacing }: { p: Prov; open: bool
   return (
     <div className="card stack" style={{ border: "1px solid var(--line)", padding: 12, borderRadius: 8 }}>
       <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0, fontSize: "small" }}>{p.displayName}</h2><span className="chip mute">API key</span></div>
-      {!open ? <button className="primary" style={{ padding: 4 }} onClick={onOpen}>{replacing ? "Change key" : `Connect ${p.displayName}`}</button> : null}
+      {!open && <button className="primary" style={{ padding: 4 }} onClick={onOpen}>{replacing ? "Change key" : `Connect ${p.displayName}`}</button>}
       {open && (
         <form onSubmit={connect} className="stack" style={{ marginTop: 8 }}>
           <p className="hint" style={{ fontSize: "small" }}>{key?.billing}</p>
@@ -172,16 +173,12 @@ function AboutUser({ profile, onSave, savedStatus }: { profile: any; onSave: any
     <div className="card stack">
       <div className="row" style={{ justifyContent: "space-between" }}><h2 style={{ margin: 0 }}>About you</h2><span className="meta">{savedStatus}</span></div>
       <p className="hint">Your AI drafts are written from these saved facts. Keep the real numbers.</p>
-      {FIELDS.map(([k, l, ph]) => (
-        <label key={k} className="f">
-          {l}
-          {k === "results" ? (
-            <textarea rows={3} defaultValue={profile[k] ?? ""} placeholder={ph} onBlur={(e) => onSave({ [k]: e.target.value })} />
-          ) : (
-            <input defaultValue={profile[k] ?? ""} placeholder={ph} onBlur={(e) => onSave({ [k]: e.target.value })} />
-          )}
-        </label>
-      ))}
+      {FIELDS.map(([k, l, ph]) => {
+        if (k === "results") {
+          return <label key={k} className="f">{l}<textarea rows={3} defaultValue={profile[k] ?? ""} placeholder={ph} onBlur={(e) => onSave({ [k]: e.target.value })} /></label>;
+        }
+        return <label key={k} className="f">{l}<input defaultValue={profile[k] ?? ""} placeholder={ph} onBlur={(e) => onSave({ [k]: e.target.value })} /></label>;
+      })}
     </div>
   );
 }
@@ -233,15 +230,13 @@ function SearchSettings({ profile, onSave }: { profile: any; onSave: any }) {
           </label>
         ))}
       </div>
-      <NearMe near={v.near || {}} roles={v.// roles array passed correctly
-        v.roles || [] 
-      } onSave={(near) => commit({ ...v, near })} />
+      <NearMe near={v.near || {}} roles={v.roles || []} onSave={(near) => commit({ ...v, near })} />
       <AutomaticSearches value={v.schedule} onSave={(schedule) => commit({ ...v, schedule })} />
     </div>
   );
 }
 
-function NearMe({ near, roles, onSave }: { near: { area?: string; km?: number }; roles: string[]; onSave: (n: { area: string; km: number }) => void }) {
+function NearMe({ near, roles, onSave }: { near: { area?: string; km: number }; roles: string[]; onSave: (n: { area: string; km: number }) => void }) {
   const [area, setArea] = useState(near.area || ""); const km = near.km || 25; const a = (near.area || "").trim(), q = encodeURIComponent;
 
   const handleAreaBlur = () => {
@@ -274,7 +269,9 @@ function NearMe({ near, roles, onSave }: { near: { area?: string; km?: number };
     <div className="stack" style={{ gap: 8, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
       <h3>Near me</h3>
       <div className="grid">
-        <label className="f">Your area<input value={area} placeholder="e.g. Koramangala, Bengaluru" onChange={(e) => setArea(e.target.value)} onBlur={handleAreaBlur} /></label>
+        <label className="f">Your area<input value={area} placeholder="e.g. Koramangala, Bengaluru" onChange={(e) => setArea(e.// area update logic
+          e.target.value
+        )} onBlur={handleAreaBlur} /></label>
         <label className="f">Distance<select value={km} onChange={handleDistanceChange}>{KM.map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
       </div>
       {renderLinks()}
@@ -319,8 +316,8 @@ function DataControls({ profile, onSave, router }: { profile: any; onSave: any; 
       <h2>Your data</h2>
       <div className="row">
         <a className="btn" href="/api/account/export"><Icon name="download" />Download my available saved data (JSON)</a>
-        {del ? <button className="danger" onClick={async () => { const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); if (!r.ok) { alert("We couldn't delete your saved data. Please try again."); return; } await wipeBrowserVault(); router.push("/"); }}>Yes, delete my saved data</button>
-          : <button className="danger" onClick={() => setDel(true)}>Delete your saved data and AI keys</button>}
+        {del && <button className="danger" onClick={async () => { const r = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); if (!r.ok) { alert("We couldn't delete your saved data. Please try again."); return; } await wipeBrowserVault(); router.push("/"); }}>Yes, delete my saved data</button>}
+        {!del && <button className="danger" onClick={() => setDel(true)}>Delete your saved data and AI keys</button>}
       </div>
       <div className="card stack" style={{ marginTop: 12 }}>
         <h2 style={{ fontSize: "small" }}>Product analytics</h2>
