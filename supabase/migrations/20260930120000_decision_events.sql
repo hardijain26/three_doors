@@ -1,4 +1,5 @@
 alter table public.roles add column if not exists archived_at timestamptz;
+alter table public.roles add column if not exists application_started_at date;
 
 drop policy if exists "own roles" on public.roles;
 create policy "read own roles" on public.roles for select to authenticated
@@ -55,6 +56,12 @@ begin
       ))
     );
     return new;
+  end if;
+
+  if old.application_started_at is distinct from new.application_started_at and new.application_started_at is not null then
+    insert into public.decision_events (user_id, role_id, event_type, source_type, source_id, payload)
+    values (new.user_id, new.id, 'APPLICATION_STARTED', 'role', new.id,
+      jsonb_build_object('application_started_at', new.application_started_at));
   end if;
 
   if old.applied_on is distinct from new.applied_on and new.applied_on is not null then
