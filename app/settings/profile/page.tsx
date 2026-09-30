@@ -134,7 +134,6 @@ function Connected({ p, c, hasLocal, onChange, reload }: { p: Prov; c: Conn; has
   }
   const missing = c.storage === "browser_only" && hasLocal === false;
   
-  // FIXED: Moved complex logic out of the JSX to prevent build crash
   const renderModelSection = () => {
     if (models) {
       return (
@@ -203,12 +202,23 @@ function SearchSettings({ profile, onSave }: { profile: any; onSave: any }) {
 
 function NearMe({ near, roles, onSave }: { near: { area?: string; km?: number }; roles: string[]; onSave: (n: { area: string; km: number }) => void }) {
   const [area, setArea] = useState(near.area || ""); const km = near.km || 25; const a = (near.area || "").trim(), q = encodeURIComponent;
+
+  const handleAreaBlur = () => {
+    if (area.trim() !== a) {
+      onSave({ area: area.trim().slice(0, 120), km });
+    }
+  };
+
+  const handleDistanceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onSave({ area: area.trim().slice(0, 120), km: +e.target.value });
+  };
+
   return (
     <div className="stack" style={{ gap: 8, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
       <h3>Near me</h3>
       <div className="grid">
-        <label className="f">Your area<input value={area} placeholder="e.g. Koramangala, Bengaluru" onChange={(e) => setArea(e.target.value)} onBlur={() => { if (area.trim() !== a) onSave({ area: area.trim().slice(0, 120), km }); }} /></label>
-        <label className="f">Distance<select value={km} onChange={(e) => onSave({ area: area.trim().slice(0, 120), km: +e.target.value })}>{KM.map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
+        <label className="f">Your area<input value={area} placeholder="e.g. Koramangala, Bengaluru" onChange={(e) => setArea(e.target.value)} onBlur={handleAreaBlur} /></label>
+        <label className="f">Distance<select value={km} onChange={handleDistanceChange}>{KM.map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
       </div>
       {!a ? <p className="hint">Add your area to get map and job search links for companies near you.</p> : (
         <div className="stack" style={{ gap: 4 }}>
@@ -245,7 +255,7 @@ function AutomaticSearches({ value, onSave }: { value?: Partial<SearchSchedule>;
 function WellbeingSettings({ profile, onSave }: { profile: any; onSave: any }) {
   const w = wbCfg(profile.wellbeing), mins = useScreenMinutes();
   const sel = (k: "session" | "brk" | "daily", label: string) => (
-    <label className="f">{label}<select value={w[k]} onChange={(e) => onSave({ wellbeing: { ...w, [k]: +e.target.value } })}>{WB_OPTS[k].map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
+    <label className="f">{label}<select value={w[k]} onChange={(e) => onPave({ wellbeing: { ...w, [k]: +e.target.value } })}>{WB_OPTS[k].map(([n, l]) => <option key={n} value={n}>{l}</option></select></label>
   );
   return (
     <div className="card stack">
