@@ -11,7 +11,7 @@ export default function OnboardingModal() {
   const sb = supabaseBrowser();
 
   useEffect(() => {
-    sb.auth.getUser().then(async ({ data }) => {
+    sb.auth.getUser().then(async ({ data }: { data: { user: { id: string } | null } }) => {
       if (!data.user) return;
       const { data: profile } = await sb.from("profiles").select("linkedin_url").eq("id", data.user.id).single();
       if (!profile?.linkedin_url) {
