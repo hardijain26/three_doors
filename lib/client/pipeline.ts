@@ -9,6 +9,13 @@ export interface Contact {
 }
 export interface Role { id: string; company: string; title: string; location: string | null; link: string | null; fit: string | null; angle: string | null; application_started_at?: string | null; applied_on: string | null; created_at: string; opening_id?: string | null; cid?: string | null; archived_at?: string | null }
 
+export type ApplicationProgressState = "not_started" | "started" | "submitted";
+export function applicationProgressState(role: Pick<Role, "application_started_at" | "applied_on">): ApplicationProgressState {
+  if (role.applied_on) return "submitted";
+  if (role.application_started_at) return "started";
+  return "not_started";
+}
+
 export const typeLabel = (c: Pick<Contact, "type" | "dept">) => c.type === "hm" ? "Hiring manager" : c.type === "rec" ? "Recruiter" : `${c.dept || "Other"} team`;
 export const today = () => new Date().toISOString().slice(0, 10);
 export const istToday = () => new Date(Date.now() + 19_800_000).toISOString().slice(0, 10);
