@@ -64,3 +64,16 @@ test("next step counts from the status date, like the tracker's 'since' date", (
   assert.equal(P.nextStep({ ...c, status_on: null })[0], "Pending 3 weeks: withdraw it");
   assert.equal(P.lastDate(c), now);
 });
+
+test("application progress is not started when neither application date exists", () => {
+  assert.equal(P.applicationProgressState({ application_started_at: null, applied_on: null }), "not_started");
+});
+
+test("application progress is started only when the start date exists", () => {
+  assert.equal(P.applicationProgressState({ application_started_at: "2026-10-01", applied_on: null }), "started");
+});
+
+test("application progress is submitted when the applied date exists", () => {
+  assert.equal(P.applicationProgressState({ application_started_at: null, applied_on: "2026-10-01" }), "submitted");
+  assert.equal(P.applicationProgressState({ application_started_at: "2026-09-30", applied_on: "2026-10-01" }), "submitted");
+});

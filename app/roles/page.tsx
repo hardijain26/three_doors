@@ -7,6 +7,8 @@ import { useMe } from "@/lib/client/useMe.ts";
 import { Icon } from "@/components/icons.tsx";
 import { showBreak } from "@/lib/client/wellbeing.ts";
 import { StatsBar, OpeningsBanner, LinkedInNudge, SaveHint, useSaver } from "@/components/board.tsx";
+import { ApplicationProgress } from "@/components/roles/ApplicationProgress.tsx";
+import { DecisionHistoryDrawer } from "@/components/DecisionHistoryDrawer.tsx";
 import {
   APPLY_CAP, STEPS, SHORT, buildNote, coffeeMsg, refMsg, hookKind, istToday, nameFromUrl, nextKind, nextStep, normUrl, parseCid, reached, searchUrl, shortUrl, today, typeLabel,
   type Contact, type ContactType, type Role,
@@ -29,6 +31,7 @@ export default function Roles() {
   const [roles, setRoles] = useState<Role[] | null>(null); const [cs, setCs] = useState<Contact[]>([]); const [fresh, setFresh] = useState<{ score: number | null }[]>([]);
   const [edit, setEdit] = useState<Record<string, boolean>>({});
   const [showArchived, setShowArchived] = useState(false);
+  const [historyRole, setHistoryRole] = useState<Role | null>(null);
   async function load() {
     const [r, c, o] = await Promise.all([sb.from("roles").select("*").order("created_at", { ascending: true }), sb.from("contacts").select("*").order("created_at", { ascending: true }), sb.from("openings").select("score").eq("state", "new")]);
     setRoles(r.data ?? []); setCs(c.data ?? []); setFresh(o.data ?? []);
@@ -67,6 +70,7 @@ export default function Roles() {
       {visibleRoles.map((r) => (
         <RoleCard key={r.id} r={r} people={cs.filter((c) => c.role_id === r.id).sort((a, b) => ORDER[a.type] - ORDER[b.type] || String(a.created_at).localeCompare(String(b.created_at)))} me={me}
           archived={!!r.archived_at}
+          onViewHistory={() => setHistoryRole(r)}
           edit={edit} setEdit={(id, v) => setEdit((e) => ({ ...e, [id]: v }))} patchContact={patchContact}
           onStartApplication={() => patchRole(r.id, { application_started_at: istToday() })}
           onApply={() => {
@@ -90,12 +94,14 @@ export default function Roles() {
             setRoles((all) => (all ?? []).map((x) => x.id === r.id ? { ...x, archived_at: null } : x)); return true;
           }} />
       ))}
+      <DecisionHistoryDrawer scope={historyRole ? { kind: "role", role: historyRole, contacts: cs } : null} onClose={() => setHistoryRole(null)} />
     </div>
   );
 }
 
 type CardProps = {
   r: Role; people: Contact[]; me: any; archived: boolean; edit: Record<string, boolean>; setEdit: (id: string, v: boolean) => void;
+  onViewHistory: () => void;
   patchContact: (id: string, p: Partial<Contact>, delay?: number) => void; onStartApplication: () => void; onApply: () => void; onUnapply: () => void; onCid: (cid: string | null) => void;
   onAdded: (c: Contact) => void; onRemoved: (id: string) => void; onMerge: (id: string, ch: Partial<Contact>) => void; onArchive: () => Promise<boolean>; onRestore: () => Promise<boolean>;
 };
@@ -119,6 +125,7 @@ function RoleCard(p: CardProps) {
           {r.fit && <span className={`chip${r.fit === "Strong" ? " ok" : r.fit === "Stretch" ? " warn" : ""}`}>{r.fit}</span>}
         </div>
       </div>
+      <ApplicationProgress applicationStartedAt={r.application_started_at} appliedOn={r.applied_on} />
       {r.angle && <p className="angle">{r.angle}</p>}
       <div className="people3">
         {people.map((c) => <Person key={c.id} c={c} r={r} me={p.me} editing={p.edit[c.id] || !c.name} setEditing={(v) => p.setEdit(c.id, v)} patch={(x, d) => p.patchContact(c.id, x, d)} onRemoved={() => p.onRemoved(c.id)} onMerge={p.onMerge} />)}
@@ -128,6 +135,9 @@ function RoleCard(p: CardProps) {
         <summary>{r.cid ? "LinkedIn company filter is on" : "Turn on the LinkedIn company filter for search"}</summary>
         <CidBox r={r} onCid={p.onCid} />
       </details>
+      <div className="row" style={{ justifyContent: "flex-end" }}>
+        <button className="link muted" type="button" aria-label={`View history for ${r.company} ${r.title}`} onClick={p.onViewHistory}>View history <span aria-hidden="true">→</span></button>
+      </div>
       <div className="row" style={{ justifyContent: "flex-end" }}>
         {p.archived ? <button className="link" onClick={async () => { setDelErr(false); if (!(await p.onRestore())) setDelErr(true); }}>{delErr ? "Couldn't restore it. Try again." : "Restore to active Roles"}</button> : <button className="link muted" onClick={async () => { if (!del) { setDel(true); return; } setDelErr(false); if (!(await p.onArchive())) setDelErr(true); }}>{delErr ? "Couldn't archive it. Try again." : del ? `Archive ${r.company}? Contacts and history will stay. Click again` : "Archive from active Roles"}</button>}
       </div>

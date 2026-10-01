@@ -257,7 +257,8 @@ create table public.decision_events (
   role_id uuid not null references public.roles(id) on delete cascade,
   event_type text not null check (event_type in (
     'ROLE_CONFIRMED', 'APPLICATION_STARTED', 'APPLICATION_SUBMITTED',
-    'OUTREACH_STARTED', 'OUTREACH_RESPONSE', 'STATUS_CHANGED', 'ROLE_ARCHIVED'
+    'OUTREACH_STARTED', 'OUTREACH_RESPONSE', 'STATUS_CHANGED', 'ROLE_ARCHIVED',
+    'CONTACT_ADDED'
   )),
   source_type text,
   source_id uuid,
@@ -266,6 +267,8 @@ create table public.decision_events (
 );
 create index decision_events_user_created on public.decision_events (user_id, created_at desc);
 create index decision_events_role_created on public.decision_events (role_id, created_at desc);
+create unique index decision_events_contact_added_once on public.decision_events (role_id, source_id)
+  where event_type = 'CONTACT_ADDED' and source_type = 'contact';
 
 alter table public.decision_events enable row level security;
 create policy "read own decision events" on public.decision_events for select to authenticated
@@ -346,6 +349,18 @@ begin
   return new;
 end $$;
 revoke all on function public.log_contact_decision_events() from public, anon, authenticated;
+create or replace function public.log_contact_added_decision_event() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  insert into public.decision_events (user_id, role_id, event_type, source_type, source_id, payload, created_at)
+  values (new.user_id, new.role_id, 'CONTACT_ADDED', 'contact', new.id,
+    jsonb_build_object('contact_type', new.type), new.created_at)
+  on conflict do nothing;
+  return new;
+end $$;
+revoke all on function public.log_contact_added_decision_event() from public, anon, authenticated;
+create trigger contact_decision_event_insert after insert on public.contacts
+  for each row execute function public.log_contact_added_decision_event();
 create trigger contact_decision_event_update after update on public.contacts
   for each row execute function public.log_contact_decision_events();
 

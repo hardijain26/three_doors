@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client.ts";
 import { useMe } from "@/lib/client/useMe.ts";
 import { StatsBar, LinkedInNudge, SaveHint, useSaver } from "@/components/board.tsx";
+import { DecisionHistoryDrawer } from "@/components/DecisionHistoryDrawer.tsx";
 import { ALL_STATUSES, daysSince, lastDate, nextStep, normUrl, reached, typeLabel, type Contact, type Role } from "@/lib/client/pipeline.ts";
 
 const stage = (c: Contact) => c.status === "Closed" ? "closed" : reached(c) >= 4 ? "warm" : reached(c) >= 1 ? "mid" : "new";
@@ -12,6 +13,7 @@ export default function People() {
   const sb = supabaseBrowser(); const me = useMe(); const { state, queue } = useSaver();
   const [cs, setCs] = useState<Contact[] | null>(null); const [roles, setRoles] = useState<Role[]>([]);
   const [q, setQ] = useState(""); const [type, setType] = useState(""); const [st, setSt] = useState("");
+  const [historyTarget, setHistoryTarget] = useState<{ contact: Contact; role: Role } | null>(null);
   useEffect(() => { Promise.all([sb.from("contacts").select("*"), sb.from("roles").select("*")]).then(([c, r]: any[]) => { setCs(c.data ?? []); setRoles(r.data ?? []); }); }, []);
   const byId = useMemo(() => Object.fromEntries(roles.map((r) => [r.id, r])), [roles]);
   const isDue = (c: Contact) => c.status !== "Closed" && nextStep(c)[1];
@@ -44,7 +46,7 @@ export default function People() {
           <div className="tscroll card" style={{ padding: 0 }}><table className="ppl"><thead><tr><th>Person</th><th>Role</th><th>Status</th><th>Next step</th><th>Notes</th></tr></thead><tbody>
             {rows.map((c) => { const r = byId[c.role_id]; const [ns] = nextStep(c); const ld = lastDate(c); const nm = c.name || "(no name yet)"; const url = normUrl(c.linkedin_url);
               return (<tr key={c.id}>
-                <td><div className="pname">{url ? <a href={url} target="_blank" rel="noopener noreferrer">{nm}</a> : nm}</div><div className="meta">{typeLabel(c)}{c.title ? ` · ${c.title}` : ""}</div>{c.email && <div className="meta mono" style={{ wordBreak: "break-all" }}>{c.email}</div>}</td>
+                <td><div className="pname">{url ? <a href={url} target="_blank" rel="noopener noreferrer">{nm}</a> : nm}</div><div className="meta">{typeLabel(c)}{c.title ? ` · ${c.title}` : ""}</div>{c.email && <div className="meta mono" style={{ wordBreak: "break-all" }}>{c.email}</div>}{r && <button className="link muted" type="button" aria-label={`View history for ${nm} at ${r.company}`} onClick={() => setHistoryTarget({ contact: c, role: r })}>View history <span aria-hidden="true">→</span></button>}</td>
                 <td><Link href={`/roles#role-${c.role_id}`}>{r?.company}</Link><div className="meta">{r?.title}</div></td>
                 <td><span className={`chip st-${stage(c)}`}>{c.status}</span>{ld && <div className="meta">{ld} · {daysSince(ld) ? `${daysSince(ld)}d ago` : "today"}</div>}</td>
                 <td className={isDue(c) ? "due" : ""}>{c.status === "Closed" ? "–" : ns}</td>
@@ -53,6 +55,10 @@ export default function People() {
           </tbody></table></div>}
         <p className="hint">Notes save as you type and show on the person's card in Roles. Click a company to jump to its role card.</p>
       </>}
+      <DecisionHistoryDrawer
+        scope={historyTarget ? { kind: "contact", role: historyTarget.role, contactId: historyTarget.contact.id, contact: historyTarget.contact } : null}
+        onClose={() => setHistoryTarget(null)}
+      />
     </div>
   );
 }
