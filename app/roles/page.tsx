@@ -8,7 +8,7 @@ import { Icon } from "@/components/icons.tsx";
 import { showBreak } from "@/lib/client/wellbeing.ts";
 import { StatsBar, OpeningsBanner, LinkedInNudge, SaveHint, useSaver } from "@/components/board.tsx";
 import { ApplicationProgress } from "@/components/roles/ApplicationProgress.tsx";
-import { DecisionHistoryDrawer } from "@/components/roles/DecisionHistoryDrawer.tsx";
+import { DecisionHistoryDrawer } from "@/components/DecisionHistoryDrawer.tsx";
 import {
   APPLY_CAP, STEPS, SHORT, buildNote, coffeeMsg, refMsg, hookKind, istToday, nameFromUrl, nextKind, nextStep, normUrl, parseCid, reached, searchUrl, shortUrl, today, typeLabel,
   type Contact, type ContactType, type Role,
@@ -94,7 +94,7 @@ export default function Roles() {
             setRoles((all) => (all ?? []).map((x) => x.id === r.id ? { ...x, archived_at: null } : x)); return true;
           }} />
       ))}
-      <DecisionHistoryDrawer role={historyRole} contacts={cs} onClose={() => setHistoryRole(null)} />
+      <DecisionHistoryDrawer scope={historyRole ? { kind: "role", role: historyRole, contacts: cs } : null} onClose={() => setHistoryRole(null)} />
     </div>
   );
 }

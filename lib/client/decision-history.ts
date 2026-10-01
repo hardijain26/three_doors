@@ -19,7 +19,12 @@ export type DecisionHistoryEntry = {
   createdAt: string;
 };
 
+export type DecisionHistoryScope =
+  | { kind: "role"; roleId: string }
+  | { kind: "contact"; roleId: string; contactId: string };
+
 const STATUS_TITLES: Record<string, string> = {
+  "Not found": "Contact not found",
   Found: "Contact identified",
   "Request sent": "Connection request sent",
   Accepted: "Connection request accepted",
@@ -39,6 +44,17 @@ export function decisionHistoryEntry(
   let detail: string | null = null;
 
   switch (event.event_type) {
+    case "CONTACT_ADDED": {
+      const contactTypes: Record<string, string> = {
+        hm: "Hiring manager",
+        rec: "Recruiter",
+        other: "Someone in another department",
+      };
+      const contactType = typeof payload.contact_type === "string" ? payload.contact_type : "";
+      title = "Contact added";
+      detail = contactTypes[contactType] ?? null;
+      break;
+    }
     case "ROLE_CONFIRMED":
       title = "Role added to your tracker";
       break;
@@ -73,12 +89,13 @@ export function decisionHistoryEntry(
 }
 
 export function decisionHistoryEntries(
-  roleId: string,
+  scope: DecisionHistoryScope,
   events: readonly DecisionHistoryEvent[],
   contacts: readonly DecisionHistoryContact[],
 ): DecisionHistoryEntry[] {
   return events
-    .filter((event) => event.role_id === roleId)
+    .filter((event) => event.role_id === scope.roleId)
+    .filter((event) => scope.kind === "role" || (event.source_type === "contact" && event.source_id === scope.contactId))
     .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id.localeCompare(b.id))
     .map((event) => decisionHistoryEntry(event, contacts))
     .filter((entry): entry is DecisionHistoryEntry => entry !== null);
